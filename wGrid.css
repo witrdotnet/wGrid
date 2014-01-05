@@ -1,14 +1,15 @@
 .gridTable{border:1px solid gray;}
 
 .gridHdrTd{
-	border: 1px solid gray;
+	border: none;
 	background-color : #5E5E5F; 
 }
 
-.gridHdrHover {
-	background-color : #F58988; 
+.gridHdrTdHover {
+	background-color : red; 
 	cursor : hand;
 }
+
 .gridHdrTd div{
 	color: white;
 	font-family: arial, helvetica, sans-serif;
@@ -22,9 +23,27 @@
 	overflow:hidden;
 }
 
-.gridHdrTdHover {
-	background-color : silver; 
+.gridHdrListTd{
+	border: none;
+	background-color : #CBCBCB; 
+}
+
+.gridHdrListTdHover{
+	background-color : red; 
 	cursor : hand;
+}
+
+.gridHdrListTd div{
+	color: black;
+	font-family: arial, helvetica, sans-serif;
+	font-size: 11px;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: bold;				
+	width:70px;
+	white-space: nowrap;
+	text-overflow:ellipsis;
+	overflow:hidden;
 }
 
 .gridValueTd {

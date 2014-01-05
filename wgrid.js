@@ -10,18 +10,16 @@ var WGrid = Class.create({
 		this.defautShiftCellsCount = 1;
 		this.highlightedElem = null;
 		this.selectedValues = new Array();
-		this.colsList = null;
-		this.rowsList = null;
+		this.data = null;
         this.options = options || {};
 		this.init();		
 		this.dispose();
     },
 	init: function() {
-		if(!this.options.cols || !this.options.cols.lists || !this.options.rows || !this.options.rows.lists) {
+		if(!this.options.data.cols || !this.options.data.rows) {
 			console.log("missed data to be displayed !");
 		}else {
-			this.colsList = this.options.cols.lists;
-			this.rowsList = this.options.rows.lists;
+			this.data = {cols : this.options.data.cols, rows : this.options.data.rows};
 		}
 	},
 	
@@ -30,7 +28,7 @@ var WGrid = Class.create({
 	// -------------------------------------------------------------------------------------
 
 	dispose: function() {
-		if(!this.colsList || !this.rowsList || this.colsList.size() == 0 || this.rowsList.size() == 0) {
+		if(!this.data.cols || !this.data.rows || this.data.cols.size() == 0 || this.data.rows.size() == 0) {
 			alert("no data to be displayed !");
 		}else {
 			if(this.options.grid) {
@@ -38,29 +36,25 @@ var WGrid = Class.create({
 				if(this.options.grid.visibleRowsCount) this.visibleRowsCount = this.options.grid.visibleRowsCount;
 			}			
 
-			if(this.colsList.size() < this.visibleColsCount) this.visibleColsCount = this.colsList.size();
-			if(this.rowsList.size() < this.visibleRowsCount) this.visibleRowsCount = this.rowsList.size();
+			console.log(this);
+			// get data cols range to be displayed
+			displayedData = this.getDisplayedDataRange(this.data);
+	
+			//if(displayedData.cols.size() < this.visibleColsCount) this.visibleColsCount = displayedData.cols.size();
+			//if(displayedData.rows.size() < this.visibleRowsCount) this.visibleRowsCount = displayedData.rows.size();
 			
 			var startTime = new Date().getTime();  
 			var elapsedTime = 0;  
-			this.draw(0,0);
+			this.draw(displayedData);
 			elapsedTime = new Date().getTime() - startTime;  
 			console.log('grid drawing takes ' + elapsedTime/1000 + 's no counting display time');  
 		}
 	},
 	
-	draw: function() {
-		console.log('redraw');
-		
+	draw: function(data) {
 		if(this.container.down()) {
 			this.container.down().remove();
 		}
-		
-		minColIndex = this.colShift;
-		maxColIndex = this.colShift + this.visibleColsCount;
-
-		minRowIndex = this.rowShift;
-		maxRowIndex = this.rowShift + this.visibleRowsCount;
 		
 		var me = this;
 	
@@ -68,107 +62,218 @@ var WGrid = Class.create({
 		var gridTable = new Element('table');
 
 		// compute colspan for navigation cell top and bottom
-		colspan = this.visibleColsCount+1;
-		if(this.colsList.size() - minColIndex < this.visibleColsCount) colspan = this.colsList.size() - minColIndex + 1;
+		colspan = this.computeNavigationColSpan(data);
 		// compute rowsopan for navigation cell left and right
-		rowspan = this.visibleRowsCount+1;
-		if(this.rowsList.size() - minRowIndex < this.visibleRowsCount) rowspan = this.rowsList.size() - minRowIndex + 1;
+		rowspan = this.computeNavigationRowSpan(data);
 		
+		/*
+		* ROW 1 : cellNavigationTop
+		*/
+		
+		// row 1
+		var row = this.appendTr(gridTable);
+		// empty cell cross topNavigation leftNavigation
+		me.appendTd(row); 
 		// cell navigation top
-		var row = this.appendTr(gridTable);
-		me.appendTd(row);
 		shiftTopCell = me.appendNavTd(row,null,{'colspan' : colspan});
-		me.appendTd(row);
+		// empty cell cross topNavigation rightNavigation
+		me.appendTd(row); 
 
-		// cell navigation left
+		/*
+		* ROW 2 : cellNavigationLeft + emptyCrossCell(2) + colsLists + cellNavigationRight
+		*/
+		
+		// row 2
 		var row = this.appendTr(gridTable);
+		// cell navigation left
 		shiftLeftCell = me.appendNavTd(row,null,{'rowspan': rowspan});
-		
-		// create columns headers row
-		me.appendTd(row);
-		
-		// append top headers
-		colIndex = 0;
-		this.colsList.each(
+		// empty cell cross colsLists/rowsLists and colsListsValues/rowsListsValues
+		me.appendTd(row,null,{'colspan':2,'rowspan':2});
+		// append colsLists
+		data.cols.each(
 				function(elm){
-					colIndex++;
-					if(colIndex> minColIndex && colIndex<=maxColIndex){
-						me.appendGridHdrTd(row,elm.value,{'id':'C'+elm.key});
+					if(elm.type == 'LIST'){
+						if(elm.collapsed || !elm.elements || elm.elements.size() == 0){
+							me.appendGridHdrListTd(row,elm.name,{'id':'CL'+elm.key,'rowspan': 2});
+						}else{
+							listColspan = elm.elements.size();
+							me.appendGridHdrListTd(row,elm.name,{'id':'CL'+elm.key,'colspan':listColspan});
+						}
 					}
 				}
 			);
-		
+
+		// empty col for values without lists
+		me.appendNavTd(row,null,{'height':'25px','colspan': this.getOrphanColsDisplayedCount(data)});
 		// cell navigation right
 		shiftRightCell = me.appendNavTd(row,null,{'rowspan': rowspan});
 
-		// create rows headers and rows values
-		rowIndex = 0;
-		this.rowsList.each(
+		/*
+		* ROW 3 : colsListsValues
+		*/
+		
+		// row 3
+		var row = this.appendTr(gridTable);
+		// append colsListsValues
+		data.cols.each(
 				function(elm){
-					rowIndex++;
-					if(rowIndex> minRowIndex && rowIndex<=maxRowIndex){
-						var row = me.appendTr(gridTable);
-						me.appendGridHdrTd(row,elm.value,{'id':'R'+elm.key});
-						
-						colIndex = 0;
-						me.colsList.each(
-								function(elm2){
-									colIndex++;
-									if(colIndex> minColIndex && colIndex<=maxColIndex){
-										me.appendGridValueTd(row,null,{'id':'C'+elm2.key+'_R'+elm.key});
-									}
-								}
-							);							
+					if(elm.type == 'LIST'){
+						if(elm.collapsed || !elm.elements || elm.elements.size() == 0){
+							null; // do Nothing
+						}else{							
+							elm.elements.each(
+								function(listValue){
+									me.appendGridHdrTd(row,listValue.name,{'id':'CV'+listValue.key});
+							});
+						}
+					}else if(elm.type == 'VALUE'){
+						me.appendGridHdrTd(row,elm.name,{'id':'CV'+elm.key});
 					}
 				}
 			);
 		
-		// cell navigation bottom
+		/*
+		* ROW 4+ : rowsLists + rowsListsValues + CellValues
+		*/
+		
+		// rows headers and rows values
+		data.rows.each(
+				function(elm){
+					var row = me.appendTr(gridTable);
+					if(elm.type == 'LIST'){
+						if(elm.collapsed || !elm.elements || elm.elements.size() == 0){
+							me.appendGridHdrListTd(row,elm.name,{'id':'RL'+elm.key,'colspan': 2});
+							// draw cellValues of ListRow
+							data.cols.each(
+									function(elm2){
+										if(elm2.type == 'LIST'){
+											if(elm2.collapsed || !elm2.elements || elm2.elements.size() == 0){
+												me.appendGridValueTd(row,null,{'id':'CL'+elm2.key+'_RL'+elm.key});
+											}else{							
+												elm2.elements.each(
+													function(colListValue){
+														me.appendGridValueTd(row,null,{'id':'CV'+colListValue.key+'_RL'+elm.key});
+												});
+											}
+										}else if(elm2.type == 'VALUE'){
+											me.appendGridValueTd(row,null,{'id':'CV'+elm2.key+'_RL'+elm.key});
+										}
+									}
+								);
+						}else{
+							listRowspan = elm.elements.size();
+							me.appendGridHdrListTd(row,elm.name,{'id':'RL'+elm.key, 'rowspan' : listRowspan});
+							createNewRow = false;
+							elm.elements.each(
+								function(rowListValue){
+									if(createNewRow) row = me.appendTr(gridTable);
+									me.appendGridHdrTd(row,rowListValue.name,{'id':'RV'+rowListValue.key});
+									// draw cellValues of ListValue
+									data.cols.each(
+											function(elm2){
+												if(elm2.type == 'LIST'){
+													if(elm2.collapsed || !elm2.elements || elm2.elements.size() == 0){
+														me.appendGridValueTd(row,null,{'id':'CL'+elm2.key+'_RV'+rowListValue.key});
+													}else{							
+														elm2.elements.each(
+															function(colListValue){
+																me.appendGridValueTd(row,null,{'id':'CV'+colListValue.key+'_RV'+rowListValue.key});
+														});
+													}
+												}else if(elm2.type == 'VALUE'){
+													me.appendGridValueTd(row,null,{'id':'CV'+elm2.key+'_RV'+rowListValue.key});
+												}
+											}
+										);
+									createNewRow = true;
+							});
+						}
+					}else if(elm.type == 'VALUE'){
+						// empty list cell
+						me.appendTd(row,null,{'width':'75px'}); 
+						// colValue cell
+						me.appendGridHdrTd(row,elm.name,{'id':'RV'+elm.key});
+						// draw cellValues of ListValue
+						data.cols.each(
+								function(elm2){
+									if(elm2.type == 'LIST'){
+										if(elm2.collapsed || !elm2.elements || elm2.elements.size() == 0){
+											me.appendGridValueTd(row,null,{'id':'CL'+elm2.key+'_RV'+elm.key});
+										}else{							
+											elm2.elements.each(
+												function(colListValue){
+													me.appendGridValueTd(row,null,{'id':'CV'+colListValue.key+'_RV'+elm.key});
+											});
+										}
+									}else if(elm2.type == 'VALUE'){
+										me.appendGridValueTd(row,null,{'id':'CV'+elm2.key+'_RV'+elm.key});
+									}
+								}
+							);
+					}
+				}
+			);
+		
+		/*
+		* ROW last : cellNavigationTop
+		*/
+		
+		// row last
 		var row = this.appendTr(gridTable);
-		me.appendTd(row);
+		// empty cell cross bottomNavigation leftNavigation
+		me.appendTd(row); 
+		// cell navigation bottom
 		shiftBottomCell = me.appendNavTd(row,null,{'colspan' : colspan});
-		me.appendTd(row);
+		// empty cell cross bottomNavigation rightNavigation
+		me.appendTd(row); 
 
-		// append top shifter to right
+		/*
+		* SHIFT TOP RIGHT BOTTOM LEFT links and events
+		*/
+		
+		// append top shifter link
 		if(this.canShiftTop()){
-			link = new Element('a',{'href':'javascript:return;'});
+			link = new Element('a',{'href':'javascript:null;'});
 			link.appendChild(document.createTextNode("TOP"));
 			shiftTopCell.appendChild(link);
 			shiftTopCell.observe('click',this.shiftTop.bind(this));
 		}else{
 			shiftTopCell.appendChild(document.createTextNode("TOP"));			
 		}
-		// append top shifter to left
+		// append left shifter link
 		if(this.canShiftLeft()){
-			link = new Element('a',{'href':'javascript:return;'});
+			link = new Element('a',{'href':'javascript:null;'});
 			link.appendChild(document.createTextNode("LEFT"));
 			shiftLeftCell.appendChild(link);
 			shiftLeftCell.observe('click',this.shiftLeft.bind(this));
 		}else{
 			shiftLeftCell.appendChild(document.createTextNode("LEFT"));			
 		}
-		// append top shifter to right
+		// append right shifter link
 		if(this.canShiftRight()){
-			link = new Element('a',{'href':'javascript:return;'});
+			link = new Element('a',{'href':'javascript:null;'});
 			link.appendChild(document.createTextNode("RIGHT"));
 			shiftRightCell.appendChild(link);
 			shiftRightCell.observe('click',this.shiftRight.bind(this));
 		}else{
 			shiftRightCell.appendChild(document.createTextNode("RIGHT"));			
 		}
-		// append top shifter to right
+		// append bottom shifter link
 		if(this.canShiftBottom()){
-			link = new Element('a',{'href':'javascript:return;'});
+			link = new Element('a',{'href':'javascript:null;'});
 			link.appendChild(document.createTextNode("BOTTOM"));
 			shiftBottomCell.appendChild(link);
 			shiftBottomCell.observe('click',this.shiftBottom.bind(this));
 		}else{
 			shiftBottomCell.appendChild(document.createTextNode("BOTTOM"));
 		}
-
+		
+		/*
+		* finalize drawing
+		*/
 		this.container.appendChild(gridTable);
 		// set styles
-		gridTable.addClassName('gridTable');
+		if(!gridTable.hasClassName('gridTable')) gridTable.addClassName('gridTable');
 		gridTable.observe('click',this.onMouseClick.bind(this));
 		gridTable.observe('mousemove',this.onMouseMove.bind(this));
 		gridTable.observe('mouseout',this.onMouseOut.bind(this));
@@ -189,6 +294,16 @@ var WGrid = Class.create({
 		trElem.appendChild(newTd);
 		return newTd;
 	},
+	appendGridHdrListTd: function(trElem, text, options){
+		newTd = this.appendTd(trElem, null, options);
+		if(text){
+			div = new Element('div');
+			div.appendChild(document.createTextNode(text));
+			newTd.appendChild(div);		
+		}
+		if(!newTd.hasClassName('gridHdrListTd')) newTd.addClassName('gridHdrListTd');
+		return newTd;
+	},
 	appendGridHdrTd: function(trElem, text, options){
 		newTd = this.appendTd(trElem, null, options);
 		if(text){
@@ -196,19 +311,19 @@ var WGrid = Class.create({
 			div.appendChild(document.createTextNode(text));
 			newTd.appendChild(div);		
 		}
-		newTd.addClassName('gridHdrTd');
+		if(!newTd.hasClassName('gridHdrTd')) newTd.addClassName('gridHdrTd');
 		return newTd;
 	},
 	appendGridValueTd: function(trElem, text, options){
 		newTd = this.appendTd(trElem, text, options);
-		newTd.addClassName('gridValueTd');
+		if(!newTd.hasClassName('gridValueTd')) newTd.addClassName('gridValueTd');
 		if(this.isSelectedGridValueCell(newTd)){this.setSelectedGridValueCell(newTd);}
-		if(newTd.id) newTd.appendChild(document.createTextNode(newTd.id))
+		//if(newTd.id) newTd.appendChild(document.createTextNode(newTd.id))
 		return newTd;
 	},
 	appendNavTd: function(trElem, text, options){
 		newTd = this.appendTd(trElem, text, options);
-		newTd.addClassName('navTd');
+		if(!newTd.hasClassName('navTd')) newTd.addClassName('navTd');			
 		return newTd;
 	},
 	
@@ -221,6 +336,8 @@ var WGrid = Class.create({
 		if(tdElem){
 			if(this.isGridValueCell(tdElem)) {
 				this.highlight(tdElem,'gridValueTdHover');
+			}else if(this.isGridHdrListCell(tdElem)) {
+				this.highlight(tdElem,'gridHdrListTdHover');
 			}else if(this.isGridHdrCell(tdElem)) {
 				this.highlight(tdElem,'gridHdrTdHover');
 			}else if(this.isNavCell(tdElem)) {
@@ -233,7 +350,10 @@ var WGrid = Class.create({
 		var tdElem = event.findElement('td');
 		if(tdElem){
 			if(this.isGridValueCell(tdElem)) {
-				this.toggle(tdElem);
+				this.toggleCheckState(tdElem);
+			}else if(this.isGridHdrListCell(tdElem)) {
+				this.toggleCollapseState(tdElem);
+				this.dispose();
 			}
 		}
 		
@@ -246,7 +366,7 @@ var WGrid = Class.create({
 		this.highlightedElem=null;
 		if(elem && !this.isSelectedGridValueCell(elem)){			
 			this.highlightedElem = elem;
-			this.highlightedElem.addClassName(cssClass);
+			if(!this.highlightedElem.hasClassName(cssClass)) this.highlightedElem.addClassName(cssClass);
 		}
 	},
 	
@@ -260,6 +380,9 @@ var WGrid = Class.create({
 	isNavCell: function(tdElem) {
 		return tdElem && tdElem.hasClassName('navTd');
 	},
+	isGridHdrListCell: function(tdElem) {
+		return tdElem && tdElem.hasClassName('gridHdrListTd');
+	},
 	isGridHdrCell: function(tdElem) {
 		return tdElem && tdElem.hasClassName('gridHdrTd');
 	},
@@ -268,13 +391,13 @@ var WGrid = Class.create({
 	},
 	setSelectedGridValueCell: function(elemTd) {
 		if(this.selectedValues.indexOf(elemTd.id) == -1) this.selectedValues.push(elemTd.id);
-		elemTd.addClassName('gridValueCellSelected');
+		if(!elemTd.hasClassName('gridValueCellSelected')) elemTd.addClassName('gridValueCellSelected');
 	},
 	setUnSelectedGridValueCell: function(elemTd) {
 		this.selectedValues.pop(elemTd.id);
 		elemTd.removeClassName('gridValueCellSelected');
 	},
-	toggle: function(elemTd){
+	toggleCheckState: function(elemTd){
 		if(this.isSelectedGridValueCell(elemTd)){
 			// not yet selected
 			this.setUnSelectedGridValueCell(elemTd);
@@ -282,40 +405,189 @@ var WGrid = Class.create({
 			// already selected
 			this.setSelectedGridValueCell(elemTd);
 		}
+	},
+	toggleCollapseState: function(elemTd){
+		if(elemTd.id.startsWith('C')){ // column
+			this.data.cols.each(
+				function(elm){
+					if(elm.type == 'LIST' && elm.key == elemTd.id.substring(2)){					
+						elm.collapsed = !elm.collapsed;
+					}
+				}
+			);
+		}else if(elemTd.id.startsWith('R')){ // row
+			this.data.rows.each(
+				function(elm){
+					if(elm.type == 'LIST' && elm.key == elemTd.id.substring(2)){					
+						elm.collapsed = !elm.collapsed;
+					}
+				}
+			);
+		}
+	},
+	getCellsCount: function(list){
+		count = 0;
+		list.each(
+			function(elm){
+				if(elm.type == 'LIST'){
+					if(elm.collapsed || !elm.elements || elm.elements.size() == 0){
+						count++;
+					}else{
+						count += elm.elements.size();
+					}
+				}else if(elm.type == 'VALUE'){
+					count++;
+				}
+			});
+		return count;
+	},
+	getOrphanCellsDisplayedCount: function(list){
+		count = 0;
+		list.each(
+			function(elm){
+				if(elm.type == 'VALUE'){
+					count++;
+				}
+			});
+		return count;
+	},
+	getOrphanColsDisplayedCount: function(data){
+		return this.getOrphanCellsDisplayedCount(data.cols);
+	},
+	getOrphanRowsDisplayedCount: function(data){
+		return this.getOrphanCellsDisplayedCount(data.rows);
+	},
+	computeNavigationColSpan: function(data){
+		return this.getCellsCount(data.cols) + 2;
+	},
+	computeNavigationRowSpan: function(data){
+		return this.getCellsCount(data.rows) + 2;
+	},
+	getDisplayedListRange: function(list,shift,visibleCount){
+		displayedList = new Array();
+		minIndex = shift;
+		maxIndex = shift + visibleCount;
+		index = 0;
+		list.each(
+			function(elm){
+				if(elm.type == 'VALUE'){
+					index++;
+					if(index > minIndex && index < maxIndex){
+						displayedList.push(elm);
+					}
+				}else if(elm.type == 'LIST'){
+					if(elm.collapsed || !elm.elements || elm.elements.size() == 0){					
+						index++;
+						if(index > minIndex && index < maxIndex){
+							displayedList.push(elm);
+						}
+					}else{
+						visibleElements = new Array();
+						elm.elements.each(
+							function(listValue){
+									index++;
+									if(index > minIndex && index < maxIndex){
+										visibleElements.push(listValue);
+									}
+							}
+						);
+						if(visibleElements && visibleElements.size()>0){
+							modifiedElm = Object.clone(elm);
+							modifiedElm.elements = visibleElements;
+							displayedList.push(modifiedElm);
+						}						
+					}
+				}
+			}
+		);
+		return displayedList;
+	},	
+	getDisplayedDataRange: function(data){
+		displayedCols = this.getDisplayedListRange(data.cols, this.colShift, this.visibleColsCount);
+		displayedRows = this.getDisplayedListRange(data.rows, this.rowShift, this.visibleRowsCount);
+		
+		displayedData = {cols:displayedCols , rows:displayedRows}
+		return displayedData;
 	},	
 	
 	// -------------------------------------------------------------------------------------
 	// GRID FILTER
 	// -------------------------------------------------------------------------------------
 	
-	filterCols: function(filter){
-		if(this.options && this.options.cols && this.options.cols.lists){ 
-			filteredList = this.options.cols.lists.findAll(
+	getFilteredList: function(list, filter){
+		if(list){
+			filteredList = list.findAll(
 					function(elm){
-						if(elm) return elm.value.match(filter);
+						if(elm){
+							if(elm.type == 'VALUE') {
+								return elm.name.match(filter);
+							}else if(elm.type == 'LIST') {
+								if(elm.name.match(filter)){
+									return true;
+								}else{
+									filteredValues = elm.elements.findAll(
+										function(val){
+											if(val) return val.name.match(filter);	
+											return false;
+										}
+									);
+									if(filteredValues && filteredValues.size()>0){										
+										return true;
+									}
+								}
+							}
+						}
 						return false;
 					});
 			if(!filteredList || filteredList.size() == 0){
 				alert("no result match the filter");
+				return null;
 			}else{
-				this.colsList = filteredList;
-				this.dispose();
+				// filter values
+				filteredListClone = new Array();
+				filteredList.each(
+					function(elm){
+						if(elm.type == 'VALUE'){
+							filteredListClone.push(elm);
+						}else if(elm.type == 'LIST') {
+							elm.collapsed = false;
+							if(elm.name.match(filter)){
+								filteredListClone.push(elm);
+							}else{
+								filteredValues = elm.elements.findAll(
+									function(val){
+										if(val) return val.name.match(filter);	
+										return false;
+									}
+								);
+								if(filteredValues && filteredValues.size()>0){
+									modifiedElm = Object.clone(elm);
+									modifiedElm.elements = filteredValues;									
+									filteredListClone.push(modifiedElm);
+								}
+							}
+						}
+					}
+				);
+				return filteredListClone;
 			}
+		}
+		return null;
+	},
+	filterCols: function(filter){
+		filteredCols = this.getFilteredList(this.options.data.cols,filter);		
+		if(filteredCols){
+			this.data.cols = filteredCols;
+			this.colShift= 0;
+			this.dispose();
 		}
 	},
 	filterRows: function(filter){
-		if(this.options && this.options.rows && this.options.rows.lists){
-			filteredList = this.options.rows.lists.findAll(
-					function(elm){
-						if(elm) return elm.value.match(filter);
-						return false;
-					});		
-			if(!filteredList || filteredList.size() == 0){
-				alert("no result match the filter");
-			}else{
-				this.rowsList = filteredList;
-				this.dispose();
-			}
+		filteredRows = this.getFilteredList(this.options.data.rows,filter);		
+		if(filteredRows){
+			this.data.rows = filteredRows;
+			this.rowShift= 0;
+			this.dispose();
 		}
 	},
 	
@@ -326,25 +598,25 @@ var WGrid = Class.create({
 	shiftTopCells: function(cellsToShift) {
 		if(this.canShiftTop()) {
 			this.rowShift = this.rowShift - cellsToShift;
-			this.draw();
+			this.dispose();
 		}
 	},	
 	shiftBottomCells: function(cellsToShift) {
 		if(this.canShiftBottom()) {
 			this.rowShift = this.rowShift + cellsToShift;
-			this.draw();
+			this.dispose();
 		}
 	},
 	shiftLeftCells: function(cellsToShift) {		
 		if(this.canShiftLeft()) {
-			this.colShift = this.colShift - cellsToShift;
-			this.draw();
+			this.colShift = this.colShift - cellsToShift;			
+			this.dispose();
 		}
 	},
 	shiftRightCells: function(cellsToShift) {
 		if(this.canShiftRight()) {
 			this.colShift = this.colShift + cellsToShift;
-			this.draw();
+			this.dispose();
 		}
 	},
 
@@ -353,19 +625,15 @@ var WGrid = Class.create({
 	// -------------------------------------------------------------------------------------
 	
 	shiftTop: function() {
-		//this.shiftTopCells(this.visibleRowsCount);
 		this.shiftTopCells(this.defautShiftCellsCount);
 	},
 	shiftBottom: function() {
-		//this.shiftBottomCells(this.visibleRowsCount);
 		this.shiftBottomCells(this.defautShiftCellsCount);
 	},
 	shiftLeft: function() {
-		//this.shiftLeftCells(this.visibleColsCount);
 		this.shiftLeftCells(this.defautShiftCellsCount);
 	},
 	shiftRight: function() {
-		//this.shiftRightCells(this.visibleColsCount);
 		this.shiftRightCells(this.defautShiftCellsCount);
 	},
 	
@@ -374,16 +642,16 @@ var WGrid = Class.create({
 	// -------------------------------------------------------------------------------------
 	
 	canShiftLeft: function() { 
-		return this.colShift > 0; 
+		return this.colShift > 0;
 	},
 	canShiftRight: function() { 
-		return this.colsList.size() - this.colShift > this.visibleColsCount; 
+		return this.getCellsCount(this.data.cols) - this.colShift >= this.visibleColsCount; 
 	},
 	canShiftTop: function() { 
 		return this.rowShift > 0; 
 	},
 	canShiftBottom: function() { 
-		return this.rowsList.size() - this.rowShift > this.visibleRowsCount; 
+		return this.getCellsCount(this.data.rows) - this.rowShift >= this.visibleRowsCount; 
 	}
 
 });
