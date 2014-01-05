@@ -72,8 +72,7 @@
 }
 
 .navTd {
-	text-align:center;
-	color: white;
+	background-color : #A1FFE1;
 }
 
 .navTdHover{
@@ -81,6 +80,13 @@
 	cursor : hand;
 }
 
+.navTdTopBottom{
+	
+}
+
+.navTdLeftRight{
+	
+}
 
 .gridValueCellChecked{
 	background-color : #898686;	

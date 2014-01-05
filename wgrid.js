@@ -151,13 +151,6 @@ var WGrid = Class.create({
 		*/
 		
 		// row 1
-		var row = this.appendTr(gridTable);
-		// empty cell cross topNavigation leftNavigation
-		me.appendTd(row); 
-		// cell navigation top
-		shiftTopCell = me.appendNavTd(row,null,{'colspan' : colspan});
-		// empty cell cross topNavigation rightNavigation
-		me.appendTd(row); 
 
 		/*
 		* ROW 2 : cellNavigationLeft + emptyCrossCell(2) + colsLists + cellNavigationRight
@@ -165,8 +158,6 @@ var WGrid = Class.create({
 		
 		// row 2
 		var row = this.appendTr(gridTable);
-		// cell navigation left
-		shiftLeftCell = me.appendNavTd(row,null,{'rowspan': rowspan});
 		// empty cell cross colsLists/rowsLists and colsListsValues/rowsListsValues
 		me.appendTd(row,null,{'colspan':2,'rowspan':2});
 		// append colsLists
@@ -184,9 +175,10 @@ var WGrid = Class.create({
 			);
 
 		// empty col for values without lists
-		me.appendNavTd(row,null,{'height':'25px','colspan': this.getOrphanColsDisplayedCount(data)});
-		// cell navigation right
-		shiftRightCell = me.appendNavTd(row,null,{'rowspan': rowspan});
+		orphanColsColspan = this.getOrphanColsDisplayedCount(data);
+		if(orphanColsColspan>0) me.appendTd(row,null,{'height':'31px','colspan': orphanColsColspan});
+		// empty cell cross colsLists and colsListsValues with scroll bar top-bottom
+		me.appendTd(row,null,{'rowspan':2});
 
 		/*
 		* ROW 3 : colsListsValues
@@ -217,9 +209,11 @@ var WGrid = Class.create({
 		*/
 		
 		// rows headers and rows values
+		var row;
+		firstValuesRow = true;
 		data.rows.each(
 				function(elm){
-					var row = me.appendTr(gridTable);
+					row = me.appendTr(gridTable);
 					if(elm.type == 'LIST'){
 						if(elm.collapsed || !elm.elements || elm.elements.size() == 0){
 							me.appendGridHdrListTd(row,elm.name,{'id':'RL'+elm.key,'colspan': 2},elm.collapsed);
@@ -240,6 +234,12 @@ var WGrid = Class.create({
 										}
 									}
 								);
+								//************								
+								if(firstValuesRow && (me.canShiftTop() || me.canShiftBottom())) {
+									shiftTopBottomCell = me.appendNavTd(row,null,{'rowspan':rowspan-2, 'class':'navTdTopBottom'});
+									firstValuesRow = false;
+								}
+								//*************
 						}else{
 							listRowspan = elm.elements.size();
 							me.appendGridHdrListTd(row,elm.name,{'id':'RL'+elm.key, 'rowspan' : listRowspan},elm.collapsed);
@@ -266,11 +266,17 @@ var WGrid = Class.create({
 											}
 										);
 									createNewRow = true;
+									//************									
+									if(firstValuesRow && (me.canShiftTop() || me.canShiftBottom())) {
+										shiftTopBottomCell = me.appendNavTd(row,null,{'rowspan':rowspan-2, 'class':'navTdTopBottom'});
+										firstValuesRow = false;
+									}
+									//*************
 							});
 						}
 					}else if(elm.type == 'VALUE'){
 						// empty list cell
-						me.appendTd(row,null,{'width':'75px'}); 
+						me.appendTd(row,null,{'width':'95px'}); 
 						// colValue cell
 						me.appendGridHdrTd(row,elm.name,{'id':'RV'+elm.key});
 						// draw cellValues of ListValue
@@ -290,62 +296,65 @@ var WGrid = Class.create({
 									}
 								}
 							);
+							//************							
+							if(firstValuesRow && (me.canShiftTop() || me.canShiftBottom())) {
+								shiftTopBottomCell = me.appendNavTd(row,null,{'rowspan':rowspan-2, 'class':'navTdTopBottom'});
+								firstValuesRow = false;
+							}
+							//*************
 					}
 				}
 			);
 		
 		/*
-		* ROW last : cellNavigationTop
+		* ROW last : cellNavigation left-right
 		*/
 		
-		// row last
-		var row = this.appendTr(gridTable);
-		// empty cell cross bottomNavigation leftNavigation
-		me.appendTd(row); 
-		// cell navigation bottom
-		shiftBottomCell = me.appendNavTd(row,null,{'colspan' : colspan});
-		// empty cell cross bottomNavigation rightNavigation
-		me.appendTd(row); 
+		if(me.canShiftLeft() || me.canShiftRight()){
+			// row last
+			var row = this.appendTr(gridTable);
+			// empty cell cross navigation left-right with colList and cols
+			me.appendTd(row,null,{'colspan' : 2});
+			// cell navigation left-right
+			shiftLeftRightCell = me.appendNavTd(row,null,{'colspan':colspan-2, 'class':'navTdLeftRight'});
+		}
 
 		/*
 		* SHIFT TOP RIGHT BOTTOM LEFT links and events
 		*/
-		
-		// append top shifter link
-		if(this.canShiftTop()){
-			link = new Element('a',{'href':'javascript:null;'});
-			link.appendChild(document.createTextNode("TOP"));
-			shiftTopCell.appendChild(link);
-			shiftTopCell.observe('click',this.shiftTop.bind(this));
-		}else{
-			shiftTopCell.appendChild(document.createTextNode("TOP"));			
+
+		// set navigation left right buttons only when canShiftLeft or canShiftRight
+		if(me.canShiftLeft() || me.canShiftRight()){
+			// append left shifter link
+			navDisabled = this.canShiftLeft()?'':'-dis';
+			link = new Element('a',{'href':'javascript:null;', 'style':'float:left'});
+			link.innerHTML = '<img src="./images/scrollLeft'+navDisabled+'.gif" />';
+			link.observe('click',this.shiftLeft.bind(this));
+			shiftLeftRightCell.appendChild(link);
+			// append right shifter link
+			navDisabled = this.canShiftRight()?'':'-dis';
+			link = new Element('a',{'href':'javascript:null;', 'style':'float:right'});
+			link.innerHTML = '<img src="./images/scrollRight'+navDisabled+'.gif" />';
+			link.observe('click',this.shiftRight.bind(this));
+			shiftLeftRightCell.appendChild(link);
 		}
-		// append left shifter link
-		if(this.canShiftLeft()){
+		// set navigation top bottom buttons only when canShiftTop or canShiftBottom
+		if(me.canShiftTop() || me.canShiftBottom()){
+			// append top shifter link
+			navDisabled = this.canShiftTop()?'':'-dis';
 			link = new Element('a',{'href':'javascript:null;'});
-			link.appendChild(document.createTextNode("LEFT"));
-			shiftLeftCell.appendChild(link);
-			shiftLeftCell.observe('click',this.shiftLeft.bind(this));
-		}else{
-			shiftLeftCell.appendChild(document.createTextNode("LEFT"));			
-		}
-		// append right shifter link
-		if(this.canShiftRight()){
+			link.innerHTML = '<img src="./images/scrollTop'+navDisabled+'.gif" />';
+			link.observe('click',this.shiftTop.bind(this));
+			shiftTopBottomCell.appendChild(link);
+			// space between shiftTop and shiftBottom		
+			spacer = new Element('div',{'style':'height:'+((33*(rowspan-2))-42)+'px;'});		
+			shiftTopBottomCell.appendChild(spacer);
+			// append bottom shifter link
+			navDisabled = this.canShiftBottom()?'':'-dis';
 			link = new Element('a',{'href':'javascript:null;'});
-			link.appendChild(document.createTextNode("RIGHT"));
-			shiftRightCell.appendChild(link);
-			shiftRightCell.observe('click',this.shiftRight.bind(this));
-		}else{
-			shiftRightCell.appendChild(document.createTextNode("RIGHT"));			
-		}
-		// append bottom shifter link
-		if(this.canShiftBottom()){
-			link = new Element('a',{'href':'javascript:null;'});
-			link.appendChild(document.createTextNode("BOTTOM"));
-			shiftBottomCell.appendChild(link);
-			shiftBottomCell.observe('click',this.shiftBottom.bind(this));
-		}else{
-			shiftBottomCell.appendChild(document.createTextNode("BOTTOM"));
+			link.innerHTML = '<img src="./images/scrollBottom'+navDisabled+'.gif" />';
+			link.observe('click',this.shiftBottom.bind(this));
+			shiftTopBottomCell.appendChild(link);
 		}
 		
 		/*
@@ -449,7 +458,7 @@ var WGrid = Class.create({
 			}else if(this.isGridHdrCell(tdElem)) {
 				this.highlight(tdElem,'gridHdrTdHover');
 			}else if(this.isNavCell(tdElem)) {
-				this.highlight(tdElem,'navTdHover');
+				//this.highlight(tdElem,'navTdHover');
 			}
 		}
 		

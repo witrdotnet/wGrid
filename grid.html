@@ -39,11 +39,15 @@
 	<body>
 		<table>
 			<tr> 
-				<td>filter on columns :</td> <td width="300px"><input type=text id='filterColsText' /></td> 
-				<td rowspan =2></td>
+				<td>filter on columns :</td>
+				<td><input type=text id='filterColsText' /></td> 
+				<td><input type=button id='clearFilterCols' value="X" /></td>
+				<td rowspan=2 style="padding-left:150px;"><input type=button id='reinit' value="regénérer des nouvelles données" onclick="location.reload(true);" /></td>
 			</tr>			
 			<tr style='vertical-align:top;'> 
-				<td>filter on rows :</td> <td><input type=text id='filterRowsText' /></td>
+				<td>filter on rows :</td>
+				<td><input type=text id='filterRowsText' /></td>
+				<td><input type=button id='clearFilterRows' value="X" /></td>
 			</tr>
 			
 		</table>
@@ -80,28 +84,27 @@
 			function getRandomInt(min,max){
 				return Math.floor(Math.random()*(max-min))+min;
 			}
-
 		
-			minColsListsCount = 1;
-			maxColsListsCount = 1;
+			minColsListsCount = 0;
+			maxColsListsCount = 5;
 			
-			minRowsListsCount = 1;
-			maxRowsListsCount = 1;
+			minRowsListsCount = 0;
+			maxRowsListsCount = 5;
 			
-			minValuesInLists = 50;
-			maxValuesInLists = 50;
+			minValuesInLists = 2;
+			maxValuesInLists = 6;
 			
 			minColsValuesCount = 0;
-			maxColsValuesCount = 0;
+			maxColsValuesCount = 20;
 			
 			minRowsValuesCount = 0;
-			maxRowsValuesCount = 0;
+			maxRowsValuesCount = 20;
 			
-			disValuesCount = 100;
-			alreadySelectedValuesCount = 100;
+			disValuesCount = 30;
+			alreadySelectedValuesCount = 30;
 			
 			visibleCols = 8;
-			visibleRows = 10;
+			visibleRows = 15;
 		
 			var colsList = new Array();
 			var rowsList = new Array();
@@ -162,8 +165,8 @@
 			
 			// disabled values			
 			for(d=1; d<=disValuesCount;d++){
-				disColId = getRandomInt(1,maxColId);
-				disRowId = getRandomInt(1,maxRowId);
+				disColId = getRandomInt(1,maxColId+1);
+				disRowId = getRandomInt(1,maxRowId+1);
 				personHavingFrag = null;
 				if(getRandomInt(1,10) > 5) personHavingFrag = getVariableLengthRandomName(5,10) + ' ' + getVariableLengthRandomName(5,10);
 				disabledValuesList.push({colId : disColId, rowId : disRowId, alreadyDelegatedTo : personHavingFrag});
@@ -171,8 +174,8 @@
 			
 			// already selected values			
 			for(d=1; d<=alreadySelectedValuesCount;d++){
-				selColId = getRandomInt(1,maxColId);
-				selRowId = getRandomInt(1,maxRowId);
+				selColId = getRandomInt(1,maxColId+1);
+				selRowId = getRandomInt(1,maxRowId+1);
 				disabled = false;
 				disabledValuesList.each(
 					function(disVal){
@@ -229,13 +232,23 @@
 			Event.observe($('filterRowsText'), 'keyup', function(event){ 				
 				grid.filterRows(event.target.value);
 				evtText = true;				
+			});			
+			Event.observe($('clearFilterCols'), 'click', function(event){
+				$('filterColsText').value=null;
+				grid.filterCols('');
+				event.stop();
+			});
+			Event.observe($('clearFilterRows'), 'click', function(event){
+				$('filterRowsText').value=null;
+				grid.filterRows('');
+				event.stop();
 			});
 			Event.observe(document, 'keydown', function(event){ 				
 				if(!evtText){
-					if(event.keyCode == Event.KEY_RIGHT) grid.shiftRight();
-					if(event.keyCode == Event.KEY_LEFT) grid.shiftLeft();
-					if(event.keyCode == Event.KEY_UP) grid.shiftTop();
-					if(event.keyCode == Event.KEY_DOWN) grid.shiftBottom();
+					if(event.keyCode == Event.KEY_RIGHT) { grid.shiftRight(); event.stop(); }
+					if(event.keyCode == Event.KEY_LEFT) { grid.shiftLeft(); event.stop(); }
+					if(event.keyCode == Event.KEY_UP) { grid.shiftTop(); event.stop(); }
+					if(event.keyCode == Event.KEY_DOWN) { grid.shiftBottom(); event.stop(); }
 				}else{
 					evtText = false;
 				}
