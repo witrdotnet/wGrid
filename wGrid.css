@@ -29,11 +29,11 @@
 
 .gridHdrListTd{
 	border: none;
-	background-color : #CCC; -- #CBCBCB; 
+	background-color : #CCC;
 }
 
 .gridHdrListTdHover{
-	background-color : #CCC; --red; 
+	background-color : #CCC;
 	cursor : hand;
 }
 
@@ -83,11 +83,11 @@
 
 
 .gridValueCellChecked{
-	background-color : gray;
+	background-color : #898686;	
 }
 
 .gridValueCellMiChecked{
-	background-color : silver;
+	background-color : #B4ADA6;
 }
 
 .gridValueCellDisabled{

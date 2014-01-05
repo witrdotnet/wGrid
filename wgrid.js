@@ -1,7 +1,18 @@
+var console = console || {
+	log: function(text){}
+};
+
+
+
+var UserGridCtrlInterface = {
+	onCreateCell : "function"
+};
+
 var grid;
 
 var WGrid = Class.create({
     initialize: function (container, options) {
+		this.userGridCtrl = null;
         this.container = $(container);		
 		this.colShift = 0;
 		this.rowShift = 0;
@@ -16,8 +27,29 @@ var WGrid = Class.create({
 		this.init();		
 		this.dispose();
     },
+	matchInterface: function(instance, interface){ 
+		for(var property in interface){		
+			if(instance[property]==undefined || typeof instance[property] != interface[property] ){
+				console.log(property + " > "+instance[property]+" > " + typeof instance[property] + "  =========> false");
+				return false;
+			}
+		}
+		return true;
+	},
 	init: function() {
-		me = this;
+		me = this;		
+		// init user grid ctrl
+		if(this.options.userGridCtrl){			
+			if(this.matchInterface(this.options.userGridCtrl, UserGridCtrlInterface)){
+				this.userGridCtrl = this.options.userGridCtrl;
+			}else{
+				console.log('userGridCtrl must match interface UserGridCtrlInterface!');
+			}
+		}else{
+			console.log('no userGridCtrl was defined');
+		}
+		
+		// init data
 		if((!this.options.data.cols || this.options.data.cols.size() == 0) && (!this.options.data.rows || this.options.data.rows.size() == 0)) {
 			console.log("missed data to be displayed !");
 		}else {
@@ -34,6 +66,7 @@ var WGrid = Class.create({
 			
 			this.data = {cols : dataCols , rows : dataRows};
 			
+			// init disabled values
 			if(this.options.disabledValues){
 				this.options.disabledValues.each(
 					function(disabledValue){
@@ -43,6 +76,20 @@ var WGrid = Class.create({
 							id = id + 'RV'+disabledValue.rowId;
 						}
 						if(id) me.disabledValues.push(id);
+					}
+				);
+			}
+			
+			// init already selected values			
+			if(this.options.alreadySelectedValues){
+				this.options.alreadySelectedValues.each(
+					function(selectedValue){
+						if(selectedValue.colId) id = 'CV'+selectedValue.colId;
+						if(selectedValue.rowId) {
+							if(id && id.length>0) id = id + '_';
+							id = id + 'RV'+selectedValue.rowId;
+						}
+						if(id) me.selectedValues.push(id);
 					}
 				);
 			}
@@ -368,7 +415,7 @@ var WGrid = Class.create({
 		elemTd.innerHTML = '';
 		cellState = this.getCellState(elemTd.id);
 		
-		if(!cellState.enabled){		
+		if(!cellState.enabled){
 			if(!elemTd.hasClassName('gridValueCellDisabled')) elemTd.addClassName('gridValueCellDisabled');
 		}
 		if(cellState.checkState == 'checked'){
@@ -381,7 +428,11 @@ var WGrid = Class.create({
 			elemTd.removeClassName('gridValueCellChecked');
 			if(!elemTd.hasClassName('gridValueCellMiChecked')) elemTd.addClassName('gridValueCellMiChecked');
 			elemTd.innerHTML = cellState.checkedCellsCount+'/'+cellState.cellsCount;
-		}		
+		}
+			
+		if(this.userGridCtrl) {
+			this.userGridCtrl.onCreateCell(elemTd,cellState);
+		}
 	},
 	
 	// -------------------------------------------------------------------------------------
@@ -408,6 +459,8 @@ var WGrid = Class.create({
 		if(tdElem){
 			if(this.isGridValueCell(tdElem)) {
 				this.toggleCheckState(tdElem);
+			}else if(this.isGridHdrCell(tdElem)) {
+				this.toggleCheckStateList(tdElem);
 			}else if(this.isGridHdrListCell(tdElem)) {
 				this.toggleCollapseState(tdElem);
 				this.dispose();
@@ -542,7 +595,7 @@ var WGrid = Class.create({
 				}
 			}
 		);		
-		if(!elemTd.hasClassName('gridValueCellDisabled')) elemTd.addClassName('gridValueCellDisabled');
+		this.updateCellDisplayedState(elemTd);
 	},
 	setCheckedGridValueCell: function(elemTd) {
 		me = this;
@@ -575,6 +628,10 @@ var WGrid = Class.create({
 				this.setCheckedGridValueCell(elemTd);
 			}		
 		}
+	},
+	toggleCheckStateList: function(elemTd){
+		console.log('implement WGrid.toggleCheckStateList()');
+		// TODO
 	},
 	toggleCollapseState: function(elemTd){
 		if(elemTd.id.startsWith('C')){ // column
@@ -684,20 +741,21 @@ var WGrid = Class.create({
 	// GRID FILTER
 	// -------------------------------------------------------------------------------------
 	
-	getFilteredList: function(list, filter){
+	getFilteredList: function(list, filter){		
 		if(list){
+			filterRegEx = new RegExp(filter,'i');
 			filteredList = list.findAll(
 					function(elm){
 						if(elm){
 							if(elm.type == 'VALUE') {
-								return elm.name.match(filter);
+								return elm.name.match(filterRegEx);
 							}else if(elm.type == 'LIST') {
-								if(elm.name.match(filter)){
+								if(elm.name.match(filterRegEx)){
 									return true;
 								}else{
 									filteredValues = elm.elements.findAll(
 										function(val){
-											if(val) return val.name.match(filter);	
+											if(val) return val.name.match(filterRegEx);	
 											return false;
 										}
 									);
@@ -721,12 +779,12 @@ var WGrid = Class.create({
 							filteredListClone.push(elm);
 						}else if(elm.type == 'LIST') {
 							elm.collapsed = false;
-							if(elm.name.match(filter)){
+							if(elm.name.match(filterRegEx)){
 								filteredListClone.push(elm);
 							}else{
 								filteredValues = elm.elements.findAll(
 									function(val){
-										if(val) return val.name.match(filter);	
+										if(val) return val.name.match(filterRegEx);	
 										return false;
 									}
 								);

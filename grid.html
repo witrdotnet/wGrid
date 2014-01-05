@@ -1,19 +1,76 @@
 <html>
 	<head>
 		<link rel="stylesheet" type="text/css" href="wGrid.css" /> 
+		<style>
+			.gridValueCellChecked{
+				background:	url('./images/grid_check.png') 50% 50% no-repeat #898686;	
+			}
+
+			.gridValueCellMiChecked{
+				background:	url('./images/grid_check.png') 50% 50% no-repeat #B4ADA6;
+			}
+
+			.gridValueCellDisabled{
+				background : url('./images/grid_disabled.png') 50% 50% no-repeat;
+				cursor : pointer;
+			}
+
+			.cell-dis{
+				background-color: #BBD400;
+				color: black;
+				font-family: arial, helvetica, sans-serif;
+				font-size: 11px;
+				font-style: normal;
+				font-variant: normal;
+				font-weight: bold;				
+				width:70px;				
+				text-overflow:ellipsis;
+				overflow:hidden;
+				margin: 0px;
+				padding : 0px;
+			}
+
+		</style>
 		<script charset="utf-8" src="./prototype.js" type="text/javascript"></script>	
 		<script charset="utf-8" src="./scriptaculous.js" type="text/javascript"></script>	
+		<script charset="utf-8" src="./wConsole.js" type="text/javascript"></script>	
 		<script charset="utf-8" src="./wGrid.js" type="text/javascript"></script>	
 	</head>
 	<body>
-		<input type=text id='filterColsText' /> <br/>
-		<input type=text id='filterRowsText' /> <br/>
+		<table>
+			<tr> 
+				<td>filter on columns :</td> <td width="300px"><input type=text id='filterColsText' /></td> 
+				<td rowspan =2></td>
+			</tr>			
+			<tr style='vertical-align:top;'> 
+				<td>filter on rows :</td> <td><input type=text id='filterRowsText' /></td>
+			</tr>
+			
+		</table>
 	
 		<div id ='cont'></div>
+		
+		<ul>
+			<li>use direction keys to navigate on grid</li>
+			<li><div class='gridvaluetd' style="width:20px;height:20px;display:inline-block;margin:2px 4px 2px 0px;">&nbsp;</div>unchecked cell</li>
+			<li><div class='gridValueCellDisabled' style="width:20px;height:20px;display:inline-block;margin:2px 4px 2px 0px;">&nbsp;</div>disabled cell (fragment not delegated in parent delegation)</li>
+			<li><div class='gridValueCellChecked' style="width:20px;height:20px;display:inline-block;margin:2px 4px 2px 0px;">&nbsp;</div>checked cell (fragment will be delegated in current delegation)</li>
+			<li><div class='gridValueCellMiChecked' style="width:20px;height:20px;display:inline-block;margin:2px 4px 2px 0px;">&nbsp;</div>partially checked (list is collapsed while not all fragments in list have been checked)</li>						
+		</ul>						
+
 		<script language = "javascript">
 			function getRandomName(){
+				return getFixedLengthRandomName(5);
+			}
+			
+			function getFixedLengthRandomName(charsCount){
+				return getVariableLengthRandomName(charsCount,charsCount);
+			}
+			
+			function getVariableLengthRandomName(minChars, maxChars){
 				name = '';
-				for(j=0; j<5; j++){
+				charsCount = getRandomInt(minChars, maxChars);
+				for(j=0; j<charsCount; j++){
 					var randomnumber=Math.floor(Math.random()*25)+65
 					name = name + String.fromCharCode(randomnumber);
 				}
@@ -40,7 +97,8 @@
 			minRowsValuesCount = 0;
 			maxRowsValuesCount = 0;
 			
-			disValuesCount = 100
+			disValuesCount = 100;
+			alreadySelectedValuesCount = 100;
 			
 			visibleCols = 8;
 			visibleRows = 10;
@@ -48,6 +106,7 @@
 			var colsList = new Array();
 			var rowsList = new Array();
 			var disabledValuesList = new Array();
+			var alreadySelectedValuesList = new Array();
 			
 			// append cols lists
 			colsListsCount = getRandomInt(minColsListsCount, maxColsListsCount);
@@ -105,13 +164,61 @@
 			for(d=1; d<=disValuesCount;d++){
 				disColId = getRandomInt(1,maxColId);
 				disRowId = getRandomInt(1,maxRowId);
-				disabledValuesList.push({colId : disColId, rowId : disRowId});
+				personHavingFrag = null;
+				if(getRandomInt(1,10) > 5) personHavingFrag = getVariableLengthRandomName(5,10) + ' ' + getVariableLengthRandomName(5,10);
+				disabledValuesList.push({colId : disColId, rowId : disRowId, alreadyDelegatedTo : personHavingFrag});
 			}
 			
+			// already selected values			
+			for(d=1; d<=alreadySelectedValuesCount;d++){
+				selColId = getRandomInt(1,maxColId);
+				selRowId = getRandomInt(1,maxRowId);
+				disabled = false;
+				disabledValuesList.each(
+					function(disVal){
+						if(disVal.colId == selColId && disVal.rowId == selRowId){
+							disabled = true;
+							throw $break;
+						}
+					}
+				);
+				if(!disabled) alreadySelectedValuesList.push({colId : selColId, rowId : selRowId});
+			}
+			
+			// define customized user grid ctrl
+			var GinUserCtrl = Class.create({	
+				onCreateCell: function(elemTd,cellState){
+					person = null;
+					if(!cellState.enabled){
+						disabledValuesList.each(
+							function(disVal){								
+								if(disVal.alreadyDelegatedTo){
+									if('CV'+disVal.colId + '_RV' + disVal.rowId == elemTd.id){
+										person = disVal.alreadyDelegatedTo;
+										throw $break;
+									}
+								}
+							}
+						);
+						if(person){
+							elemTd.innerHTML = '';
+							if(!elemTd.hasClassName('cell-dis')) elemTd.addClassName('cell-dis');
+							elemTd.removeClassName('gridValueCellDisabled');
+							elemTd.innerHTML = person;
+							console.log(elemTd.id+' delegatedTo : '+person);
+						}
+					}
+				}
+			});
+			var ginUserCtrl = new GinUserCtrl;
+			
+			// create Grid with customized gridCtrl
 			grid = new WGrid('cont',{
+									userGridCtrl : ginUserCtrl,
 									data : {cols:colsList, rows:rowsList},
 									disabledValues: disabledValuesList,
-									grid:{visibleColsCount:visibleCols,visibleRowsCount:visibleRows}									
+									alreadySelectedValues: alreadySelectedValuesList,
+									grid:{visibleColsCount:visibleCols,visibleRowsCount:visibleRows}
 									}
 								);
 			evtText = false;
