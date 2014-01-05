@@ -1,4 +1,6 @@
-.gridTable{border:1px solid gray;}
+.gridTable{
+	border-collapse : separate;
+}
 
 .gridHdrTd{
 	border: none;
@@ -98,5 +100,72 @@
 
 .gridValueCellDisabled{
 	background-color : white;
-	cursor : pointer;
+	cursor : default;
+}
+
+.scrollLeft{
+	display : block;
+	background : url('./images/scrollLeft.gif') no-repeat;
+	width : 21px;
+	height : 21px;
+}
+
+.scrollLeft-dis{
+	display : block;
+	background : url('./images/scrollLeft-dis.gif') no-repeat;
+	width : 21px;
+	height : 21px;
+	cursor : default;
+}
+
+.scrollRight{
+	display : block;
+	background : url('./images/scrollRight.gif') no-repeat;
+	width : 21px;
+	height : 21px;
+}
+
+.scrollRight-dis{
+	display : block;
+	background : url('./images/scrollRight-dis.gif') no-repeat;
+	width : 21px;
+	height : 21px;
+	cursor : default;
+}
+
+.scrollTop{
+	display : block;
+	background : url('./images/scrollTop.gif') no-repeat;
+	width : 21px;
+	height : 21px;
+}
+
+.scrollTop-dis{
+	display : block;
+	background : url('./images/scrollTop-dis.gif') no-repeat;
+	width : 21px;
+	height : 21px;
+	cursor : default;
+}
+
+.scrollBottom{
+	display : block;
+	background : url('./images/scrollBottom.gif') no-repeat;
+	width : 21px;
+	height : 21px;
+}
+
+.scrollBottom-dis{
+	display : block;
+	background : url('./images/scrollBottom-dis.gif') no-repeat;
+	width : 21px;
+	height : 21px;
+	cursor : default;
+}
+
+.progress{
+	display : block;
+	background : url('./images/loading.gif') repeat;
+	width : 300px;
+	height : 300px;
 }

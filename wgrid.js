@@ -132,9 +132,8 @@ var WGrid = Class.create({
 	},
 	
 	draw: function(data) {
-		if(this.container.down()) {
-			this.container.down().remove();
-		}
+		if(this.container.down()) this.container.down().remove();
+		this.container.appendChild(new Element('div',{'class':'progress'}));		
 		
 		var me = this;
 	
@@ -165,10 +164,10 @@ var WGrid = Class.create({
 				function(elm){
 					if(elm.type == 'LIST'){
 						if(elm.collapsed || !elm.elements || elm.elements.size() == 0){
-							me.appendGridHdrListTd(row,elm.name,{'id':'CL'+elm.key,'rowspan': 2},elm.collapsed);
+							me.appendGridHdrListTd(row,elm.name,{'object':elm, 'id':'CL'+elm.key,'rowspan': 2,'object':elm},elm.collapsed);
 						}else{
 							listColspan = elm.elements.size();
-							me.appendGridHdrListTd(row,elm.name,{'id':'CL'+elm.key,'colspan':listColspan},elm.collapsed);
+							me.appendGridHdrListTd(row,elm.name,{'object':elm, 'id':'CL'+elm.key,'colspan':listColspan,'object':elm},elm.collapsed);
 						}
 					}
 				}
@@ -216,7 +215,7 @@ var WGrid = Class.create({
 					row = me.appendTr(gridTable);
 					if(elm.type == 'LIST'){
 						if(elm.collapsed || !elm.elements || elm.elements.size() == 0){
-							me.appendGridHdrListTd(row,elm.name,{'id':'RL'+elm.key,'colspan': 2},elm.collapsed);
+							me.appendGridHdrListTd(row,elm.name,{'object':elm, 'id':'RL'+elm.key,'colspan': 2},elm.collapsed);
 							// draw cellValues of ListRow
 							data.cols.each(
 									function(elm2){
@@ -242,7 +241,7 @@ var WGrid = Class.create({
 								//*************
 						}else{
 							listRowspan = elm.elements.size();
-							me.appendGridHdrListTd(row,elm.name,{'id':'RL'+elm.key, 'rowspan' : listRowspan},elm.collapsed);
+							me.appendGridHdrListTd(row,elm.name,{'object':elm, 'id':'RL'+elm.key, 'rowspan' : listRowspan},elm.collapsed);
 							createNewRow = false;
 							elm.elements.each(
 								function(rowListValue){
@@ -327,14 +326,12 @@ var WGrid = Class.create({
 		if(me.canShiftLeft() || me.canShiftRight()){
 			// append left shifter link
 			navDisabled = this.canShiftLeft()?'':'-dis';
-			link = new Element('a',{'href':'javascript:null;', 'style':'float:left'});
-			link.innerHTML = '<img src="./images/scrollLeft'+navDisabled+'.gif" />';
+			link = new Element('a',{'href':'javascript:null;', 'class':'scrollLeft'+navDisabled, 'style':'float:left'});
 			link.observe('click',this.shiftLeft.bind(this));
 			shiftLeftRightCell.appendChild(link);
 			// append right shifter link
 			navDisabled = this.canShiftRight()?'':'-dis';
-			link = new Element('a',{'href':'javascript:null;', 'style':'float:right'});
-			link.innerHTML = '<img src="./images/scrollRight'+navDisabled+'.gif" />';
+			link = new Element('a',{'href':'javascript:null;', 'class':'scrollRight'+navDisabled, 'style':'float:right'});
 			link.observe('click',this.shiftRight.bind(this));
 			shiftLeftRightCell.appendChild(link);
 		}
@@ -342,8 +339,7 @@ var WGrid = Class.create({
 		if(me.canShiftTop() || me.canShiftBottom()){
 			// append top shifter link
 			navDisabled = this.canShiftTop()?'':'-dis';
-			link = new Element('a',{'href':'javascript:null;'});
-			link.innerHTML = '<img src="./images/scrollTop'+navDisabled+'.gif" />';
+			link = new Element('a',{'href':'javascript:null;', 'class':'scrollTop'+navDisabled});
 			link.observe('click',this.shiftTop.bind(this));
 			shiftTopBottomCell.appendChild(link);
 			// space between shiftTop and shiftBottom		
@@ -351,8 +347,7 @@ var WGrid = Class.create({
 			shiftTopBottomCell.appendChild(spacer);
 			// append bottom shifter link
 			navDisabled = this.canShiftBottom()?'':'-dis';
-			link = new Element('a',{'href':'javascript:null;'});
-			link.innerHTML = '<img src="./images/scrollBottom'+navDisabled+'.gif" />';
+			link = new Element('a',{'href':'javascript:null;', 'class':'scrollBottom'+navDisabled});
 			link.observe('click',this.shiftBottom.bind(this));
 			shiftTopBottomCell.appendChild(link);
 		}
@@ -360,6 +355,7 @@ var WGrid = Class.create({
 		/*
 		* finalize drawing
 		*/
+		if(this.container.down()) this.container.down().remove();		
 		this.container.appendChild(gridTable);
 		// set styles
 		if(!gridTable.hasClassName('gridTable')) gridTable.addClassName('gridTable');
@@ -384,10 +380,11 @@ var WGrid = Class.create({
 		return newTd;
 	},
 	appendGridHdrListTd: function(trElem, text, options,collapsed){
-		newTd = this.appendTd(trElem, null, options);		
+		newTd = this.appendTd(trElem, null, options);				
 		if(text){
+			if(options && options.object) newTd.title = text;
 			div = new Element('div');
-			div.appendChild(document.createTextNode(text));
+			div.appendChild(document.createTextNode(text));			
 			if(collapsed){
 				div.addClassName('gridHdrListTdCollapsed');
 			}else {
@@ -440,7 +437,7 @@ var WGrid = Class.create({
 		}
 			
 		if(this.userGridCtrl) {
-			this.userGridCtrl.onCreateCell(elemTd,cellState);
+			this.userGridCtrl.onCreateCell(this, elemTd,cellState);
 		}
 	},
 	
@@ -672,6 +669,26 @@ var WGrid = Class.create({
 						count += elm.elements.size();
 					}
 				}else if(elm.type == 'VALUE'){
+					count++;
+				}
+			});
+		return count;
+	},
+	getCellsListCount: function(list){
+		count = 0;
+		list.each(
+			function(elm){
+				if(elm.type == 'LIST'){
+					count++;
+				}
+			});
+		return count;
+	},
+	getCellsOrphanCount: function(list){
+		count = 0;
+		list.each(
+			function(elm){
+				if(elm.type == 'VALUE'){
 					count++;
 				}
 			});
@@ -913,6 +930,34 @@ var WGrid = Class.create({
 		);
 		this.selectedValues
 		return result;
+	},	
+	getStatistics: function(){
+		displayedDataRange = this.getDisplayedDataRange(this.data);
+		return {
+				originalData:{
+					'totalCols':this.getCellsCount(this.options.data.cols),
+					'totalColsLists':this.getCellsListCount(this.options.data.cols),
+					'totalColsOrphan':this.getCellsOrphanCount(this.options.data.cols),
+					'totalRows':this.getCellsCount(this.options.data.rows),
+					'totalRowsLists':this.getCellsListCount(this.options.data.rows),
+					'totalRowsOrphan':this.getCellsOrphanCount(this.options.data.rows)
+					},
+				filteredData:{
+					'totalCols':this.getCellsCount(this.data.cols),
+					'totalColsLists':this.getCellsListCount(this.data.cols),
+					'totalColsOrphan':this.getCellsOrphanCount(this.data.cols),
+					'totalRows':this.getCellsCount(this.data.rows),
+					'totalRowsLists':this.getCellsListCount(this.data.rows),
+					'totalRowsOrphan':this.getCellsOrphanCount(this.data.rows)
+					},					
+				displayedData:{
+					'totalCols':this.getCellsCount(displayedDataRange.cols),
+					'totalColsLists':this.getCellsListCount(displayedDataRange.cols),
+					'totalColsOrphan':this.getCellsOrphanCount(displayedDataRange.cols),
+					'totalRows':this.getCellsCount(displayedDataRange.rows),
+					'totalRowsLists':this.getCellsListCount(displayedDataRange.rows),
+					'totalRowsOrphan':this.getCellsOrphanCount(displayedDataRange.rows)
+					}
+				}
 	}
-	
 });

@@ -1,0 +1,55 @@
+.gridContainer{
+	border:1px solid gray;
+}
+
+.gridValueCellChecked{
+	background:	url('./images/grid_check.png') 50% 50% no-repeat #898686;	
+}
+
+.gridValueCellMiChecked{
+	background:	url('./images/grid_check.png') 50% 50% no-repeat #B4ADA6;
+}
+
+.gridValueCellDisabled{
+	background : url('./images/grid_disabled.png') 50% 50% no-repeat;
+	cursor : default;
+}
+
+.cell-dis{
+	background-color: #BBD400;
+	color: black;
+	font-family: arial, helvetica, sans-serif;
+	font-size: 11px;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: bold;				
+	width:70px;				
+	text-overflow:ellipsis;
+	overflow:hidden;
+	margin: 0px;
+	padding : 0px;
+	cursor : default;
+}
+
+
+/*--------------------------------------------------------------------------------------------*/
+.info{
+	background-color: #A1FFE1;
+	border: 1px solid gray;	
+	position: fixed;
+	bottom: 0px;
+	left : 0px;
+	right: 0px;
+}
+
+.info li{
+	line-height: 30px;
+}
+
+.info div{
+	border: 2px solid white;
+	width: 23px;
+	height: 23px;
+	display: inline-block;
+	margin: 2px 4px 2px 0px;
+}
