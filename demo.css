@@ -12,7 +12,7 @@
 }
 
 .gridValueCellDisabled{
-	background : url('./images/grid_disabled.png') 50% 50% no-repeat;
+	background : url('./images/grid_disabled.png') 50% 50% no-repeat #FFFFFF;
 	cursor : default;
 }
 
@@ -28,10 +28,31 @@
 	text-overflow:ellipsis;
 	overflow:hidden;
 	margin: 0px;
-	padding : 0px;
+	padding : 0px 4px;
 	cursor : default;
 }
 
+.searchButton{
+	border: none;
+	background-color: transparent;
+	cursor: pointer;
+}
+
+.filterButton{
+	border : none;
+	background: url('./images/filter.jpg') 50% 50% no-repeat transparent;
+	width: 21px;
+	height: 21px;
+	cursor: pointer;	
+}
+
+.clearFilterButton{
+	border : none;
+	background: url('./images/delete.png') 50% 50% no-repeat transparent;
+	width: 21px;
+	height: 21px;
+	cursor: pointer;	
+}
 
 /*--------------------------------------------------------------------------------------------*/
 .info{

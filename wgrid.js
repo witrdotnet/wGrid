@@ -4,7 +4,11 @@ var console = console || {
 
 var UserGridCtrlInterface = {
 	onCreateCell : "function",
-	onSelectionChange : "function"
+	onUpdateCellState : "function",
+	onSelectionChange : "function",
+	onCreateCrossCell : "function",
+	onGridTranspose : "function",
+	onDrawComplete : "function"
 };
 
 var grid;
@@ -12,6 +16,11 @@ var grid;
 var WGrid = Class.create({
     initialize: function (container, options) {		
 		this.userGridCtrl = null;
+		this.transpose = false;
+		this.preserveGridWidth = true;
+		this.navigationVisible = true;
+		this.navigationAlwaysVisible = true;
+		this.navigationMode = 'BAR'; // 'SCROLL'/'BAR'
         this.container = $(container);		
 		this.colShift = 0;
 		this.rowShift = 0;
@@ -49,6 +58,12 @@ var WGrid = Class.create({
 			console.log('no userGridCtrl was defined');
 		}
 		
+		// init grid options
+		if(this.options.grid["navigationVisible"] != undefined) this.navigationVisible = this.options.grid.navigationVisible;
+		if(this.options.grid["navigationAlwaysVisible"] != undefined) this.navigationAlwaysVisible = this.options.grid.navigationAlwaysVisible;
+		if(this.options.grid["navigationMode"] != undefined) this.navigationMode = this.options.grid.navigationMode;
+		if(this.options.grid["preserveGridWidth"] != undefined) this.preserveGridWidth = this.options.grid.preserveGridWidth;
+		
 		// init data
 		if((!this.options.data.cols || this.options.data.cols.size() == 0) && (!this.options.data.rows || this.options.data.rows.size() == 0)) {
 			console.log("missed data to be displayed !");
@@ -64,7 +79,7 @@ var WGrid = Class.create({
 				dataRows = new Array({type:'VALUE', key:0, name:'Tous'});
 			}
 			
-			this.data = {cols : dataCols , rows : dataRows};
+			this.data = {cols : dataCols , rows : dataRows , colsTitle : this.options.data.colsTitle, rowsTitle : this.options.data.rowsTitle};
 			
 			// init disabled values
 			if(this.options.disabledValues){
@@ -131,13 +146,14 @@ var WGrid = Class.create({
 	},
 	
 	draw: function(data) {
+	
 		if(this.container.down()) this.container.down().remove();
 		this.container.appendChild(new Element('div',{'class':'progress'}));		
 		
 		var me = this;
 	
 		// create table Grid
-		var gridTable = new Element('table');
+		var gridTable = new Element('table', {'cellpadding':'0px'});
 
 		// gather stats for displayed data
 		displayedGridStats = {cols : this.getGridStats(data.cols), rows : this.getGridStats(data.rows)};
@@ -147,12 +163,30 @@ var WGrid = Class.create({
 		colspan = displayedGridStats.cols.cells;
 		// rowsopan for rowsTitle
 		rowspan = displayedGridStats.rows.cells;
-
+		
 		colspanCross = 1;
 		rowspanCross = 1;
 		
 		if(gridStats.rows.lists > 0) colspanCross++;
 		if(gridStats.cols.lists > 0) rowspanCross++;
+		
+		colspanNavTopBottomBar = 0;
+		rowspanNavLeftRightBar = 1;
+		
+		if(this.preserveGridWidth && (displayedGridStats.cols.cells < me.visibleColsCount)) colspanNavTopBottomBar++;
+		/*
+		* ROW 0 : shiftTopBar
+		*/
+		
+		//  shiftTopBar (if navigation mode)
+		if(me.isNavigationModeBar()){
+			if(me.navigationVisible && (me.isNavigationAlwaysVisible() || me.canShiftTop())){
+				var row = this.appendTr(gridTable);			
+				me.appendNavTdTopLeft(row);
+				shiftTopBar = me.appendNavTdTop(row,null,{'colspan':colspan + colspanCross + colspanNavTopBottomBar, 'align':'center'});				
+				me.appendNavTdTopRight(row);
+			}
+		}
 		
 		/*
 		* ROW 1 : colsTitle
@@ -160,16 +194,41 @@ var WGrid = Class.create({
 		
 		// row 1
 		var row = this.appendTr(gridTable);
+		// shiftLeftBar (if navigation mode)
+		if(me.isNavigationModeBar()){
+			if(me.navigationVisible && (me.isNavigationAlwaysVisible() || me.canShiftLeft())){
+				shiftLeftBar = me.appendNavTdLeft(row,null,{'rowspan':rowspan + rowspanCross+rowspanNavLeftRightBar, 'align':'center'});				
+			}
+		}
 		// empty cell cross colsTitle/rowsTitle and colsLists/rowsLists and colsListsValues/rowsListsValues
-		me.appendTd(row,null,{'colspan':colspanCross,'rowspan':rowspanCross});
+		crossTd = me.appendTd(row,null,{'colspan':colspanCross,'rowspan':rowspanCross, 'align':'center'});
+		// allow user to customize empty crossCell
+		if(this.userGridCtrl) {
+			this.userGridCtrl.onCreateCrossCell(this, crossTd);
+		}
+		
 		// colsTitle
-		if(me.options.data.colsTitle) {
-			me.appendGridHdrTdHorizontal(row,me.options.data.colsTitle,{'colspan':colspan});
+		if(data.colsTitle) {
+			me.appendGridHdrTdHorizontal(row,data.colsTitle,{'colspan':colspan});
 		}else{
 			me.appendTd(row,null,{'colspan':colspan});
 		}
-		// empty cell cross colsTitle, colsLists and colsListsValues with scroll bar top-bottom
-		me.appendTd(row,null,{'rowspan':rowspanCross});
+		// visible cols compensation
+		if(this.preserveGridWidth && (displayedGridStats.cols.cells < me.visibleColsCount)){
+			me.appendTd(row,null,{'rowspan':rowspan + rowspanCross + rowspanNavLeftRightBar,'width':((me.visibleColsCount - displayedGridStats.cols.cells)*95)+'px','style':'background-color:gray'})
+		}
+		
+		// shiftRightBar (if navigation mode)
+		if(me.isNavigationModeBar()){
+			if(me.navigationVisible && (me.isNavigationAlwaysVisible() || me.canShiftRight())){
+				shiftRightBar = me.appendNavTdRight(row,null,{'rowspan':rowspan + rowspanCross + rowspanNavLeftRightBar, 'align':'center'});				
+			}
+		}else{		
+			// empty cell cross colsTitle, colsLists and colsListsValues with scroll bar top-bottom
+			if(me.navigationVisible && (me.isNavigationAlwaysVisible() || me.canShiftTop() || me.canShiftBottom())){
+				me.appendTd(row,null,{'rowspan':rowspanCross});
+			}
+		}
 
 		/*
 		* ROW 2 : colsLists + empty col for orphan colsValues
@@ -184,10 +243,10 @@ var WGrid = Class.create({
 					function(elm){
 						if(elm.type == 'LIST'){
 							if(elm.collapsed || !elm.elements || elm.elements.size() == 0){
-								me.appendGridHdrListTd(row,elm.name,{'object':elm, 'id':'CL'+elm.key,'rowspan': 2,'object':elm},elm.collapsed);
+								me.appendGridHdrListTd(row,elm.name,{'object':elm, 'id':me.transcodeGridHdrListColId(elm.key),'rowspan': 2,'object':elm},elm.collapsed);
 							}else{
 								listColspan = elm.elements.size();
-								me.appendGridHdrListTd(row,elm.name,{'object':elm, 'id':'CL'+elm.key,'colspan':listColspan,'object':elm},elm.collapsed);
+								me.appendGridHdrListTd(row,elm.name,{'object':elm, 'id':me.transcodeGridHdrListColId(elm.key),'colspan':listColspan,'object':elm},elm.collapsed);
 							}
 						}
 					}
@@ -205,8 +264,8 @@ var WGrid = Class.create({
 		var row = this.appendTr(gridTable);
 
 		// rowsTitle
-		if(me.options.data.rowsTitle){
-			me.appendGridHdrTdVertical(row,me.options.data.rowsTitle,{'colspan':colspanCross});
+		if(data.rowsTitle){
+			me.appendGridHdrTdVertical(row,data.rowsTitle,{'colspan':colspanCross});
 		}else{
 			me.appendTd(row,null,{'colspan':colspanCross});
 		}
@@ -220,11 +279,11 @@ var WGrid = Class.create({
 						}else{							
 							elm.elements.each(
 								function(listValue){
-									me.appendGridHdrValueTd(row,listValue.name,{'id':'CV'+listValue.key});
+									me.appendGridHdrValueTd(row,listValue.name,{'id':me.transcodeGridHdrColId(listValue.key)});
 							});
 						}
 					}else if(elm.type == 'VALUE'){
-						me.appendGridHdrValueTd(row,elm.name,{'id':'CV'+elm.key});
+						me.appendGridHdrValueTd(row,elm.name,{'id':me.transcodeGridHdrColId(elm.key)});
 					}
 				}
 			);
@@ -243,62 +302,62 @@ var WGrid = Class.create({
 					if(!firstValuesRow) row = me.appendTr(gridTable);
 					if(elm.type == 'LIST'){
 						if(elm.collapsed || !elm.elements || elm.elements.size() == 0){
-							me.appendGridHdrListTd(row,elm.name,{'object':elm, 'id':'RL'+elm.key,'colspan': 2},elm.collapsed);
+							me.appendGridHdrListTd(row,elm.name,{'object':elm, 'id':me.transcodeGridHdrListRowId(elm.key),'colspan': 2},elm.collapsed);
 							// draw cellValues of ListRow
 							data.cols.each(
 									function(elm2){
 										if(elm2.type == 'LIST'){
 											if(elm2.collapsed || !elm2.elements || elm2.elements.size() == 0){
-												me.appendGridValueTd(row,null,{'id':'CL'+elm2.key+'_RL'+elm.key});
+												me.appendGridValueTd(row,null,{'id':me.transcodeCLRL(elm2.key,elm.key)});
 											}else{							
 												elm2.elements.each(
 													function(colListValue){
-														me.appendGridValueTd(row,null,{'id':'CV'+colListValue.key+'_RL'+elm.key});
+														me.appendGridValueTd(row,null,{'id':me.transcodeCVRL(colListValue.key,elm.key)});
 												});
 											}
 										}else if(elm2.type == 'VALUE'){
-											me.appendGridValueTd(row,null,{'id':'CV'+elm2.key+'_RL'+elm.key});
+											me.appendGridValueTd(row,null,{'id':me.transcodeCVRL(elm2.key,elm.key)});
 										}
 									}
 								);
-								//************								
+								//************
 								if(firstValuesRow){
-									if(me.canShiftTop() || me.canShiftBottom()) {
-										shiftTopBottomCell = me.appendNavTd(row,null,{'rowspan':rowspan, 'class':'navTdTopBottom'});
+									if(me.navigationVisible && me.isNavigationModeScroll() && (me.isNavigationAlwaysVisible() || me.canShiftTop() || me.canShiftBottom())) {
+										shiftTopBottomCell = me.appendNavTdTopBottom(row,null,{'rowspan':rowspan, 'class':'navTdTopBottom'});
 									}
 									firstValuesRow = false;
 								}
 								//*************
 						}else{
 							listRowspan = elm.elements.size();
-							me.appendGridHdrListTd(row,elm.name,{'object':elm, 'id':'RL'+elm.key, 'rowspan' : listRowspan},elm.collapsed);
+							me.appendGridHdrListTd(row,elm.name,{'object':elm, 'id':me.transcodeGridHdrListRowId(elm.key), 'rowspan' : listRowspan},elm.collapsed);
 							createNewRow = false;
 							elm.elements.each(
 								function(rowListValue){
 									if(createNewRow) row = me.appendTr(gridTable);
-									me.appendGridHdrValueTd(row,rowListValue.name,{'id':'RV'+rowListValue.key});
+									me.appendGridHdrValueTd(row,rowListValue.name,{'id':me.transcodeGridHdrRowId(rowListValue.key)});
 									// draw cellValues of ListValue
 									data.cols.each(
 											function(elm2){
 												if(elm2.type == 'LIST'){
 													if(elm2.collapsed || !elm2.elements || elm2.elements.size() == 0){
-														me.appendGridValueTd(row,null,{'id':'CL'+elm2.key+'_RV'+rowListValue.key});
+														me.appendGridValueTd(row,null,{'id':me.transcodeCLRV(elm2.key,rowListValue.key)});
 													}else{							
 														elm2.elements.each(
 															function(colListValue){
-																me.appendGridValueTd(row,null,{'id':'CV'+colListValue.key+'_RV'+rowListValue.key});
+																me.appendGridValueTd(row,null,{'id':me.transcodeCVRV(colListValue.key,rowListValue.key)});
 														});
 													}
 												}else if(elm2.type == 'VALUE'){
-													me.appendGridValueTd(row,null,{'id':'CV'+elm2.key+'_RV'+rowListValue.key});
+													me.appendGridValueTd(row,null,{'id':me.transcodeCVRV(elm2.key,rowListValue.key)});
 												}
 											}
 										);
 									createNewRow = true;
 									//************									
 									if(firstValuesRow){
-										if(me.canShiftTop() || me.canShiftBottom()) {
-											shiftTopBottomCell = me.appendNavTd(row,null,{'rowspan':rowspan, 'class':'navTdTopBottom'});
+										if(me.navigationVisible && me.isNavigationModeScroll() && (me.isNavigationAlwaysVisible() || me.canShiftTop() || me.canShiftBottom())) {
+											shiftTopBottomCell = me.appendNavTdTopBottom(row,null,{'rowspan':rowspan, 'class':'navTdTopBottom'});
 										}
 										firstValuesRow = false;
 									}
@@ -312,28 +371,28 @@ var WGrid = Class.create({
 							emptyCellForOrphansCreated = true;
 						}
 						// colValue cell
-						me.appendGridHdrValueTd(row,elm.name,{'id':'RV'+elm.key});
+						me.appendGridHdrValueTd(row,elm.name,{'id':me.transcodeGridHdrRowId(elm.key)});
 						// draw cellValues of ListValue
 						data.cols.each(
 								function(elm2){
 									if(elm2.type == 'LIST'){
 										if(elm2.collapsed || !elm2.elements || elm2.elements.size() == 0){
-											me.appendGridValueTd(row,null,{'id':'CL'+elm2.key+'_RV'+elm.key});
+											me.appendGridValueTd(row,null,{'id':me.transcodeCLRV(elm2.key,elm.key)});
 										}else{							
 											elm2.elements.each(
 												function(colListValue){
-													me.appendGridValueTd(row,null,{'id':'CV'+colListValue.key+'_RV'+elm.key});
+													me.appendGridValueTd(row,null,{'id':me.transcodeCVRV(colListValue.key,elm.key)});
 											});
 										}
 									}else if(elm2.type == 'VALUE'){
-										me.appendGridValueTd(row,null,{'id':'CV'+elm2.key+'_RV'+elm.key});
+										me.appendGridValueTd(row,null,{'id':me.transcodeCVRV(elm2.key,elm.key)});
 									}
 								}
 							);
 							//************							
 							if(firstValuesRow){
-								if(me.canShiftTop() || me.canShiftBottom()) {
-									shiftTopBottomCell = me.appendNavTd(row,null,{'rowspan':rowspan, 'class':'navTdTopBottom'});
+								if(me.navigationVisible && me.isNavigationModeScroll() && (me.isNavigationAlwaysVisible() || me.canShiftTop() || me.canShiftBottom())) {
+									shiftTopBottomCell = me.appendNavTdTopBottom(row,null,{'rowspan':rowspan, 'class':'navTdTopBottom'});
 								}
 								firstValuesRow = false;
 							}
@@ -345,49 +404,98 @@ var WGrid = Class.create({
 		/*
 		* ROW last : cellNavigation left-right
 		*/
-		
-		if(me.canShiftLeft() || me.canShiftRight()){
-			// row last
-			var row = this.appendTr(gridTable);
-			// empty cell cross navigation left-right with colList and cols
-			me.appendTd(row,null,{'colspan' : colspanCross});
-			// cell navigation left-right
-			shiftLeftRightCell = me.appendNavTd(row,null,{'colspan':colspan, 'class':'navTdLeftRight'});
+
+		if(me.isNavigationModeScroll()){
+			if(me.navigationVisible && (me.isNavigationAlwaysVisible() || me.canShiftLeft() || me.canShiftRight())){
+				// row last
+				var row = this.appendTr(gridTable);
+				// empty cell cross navigation left-right with colList and cols
+				me.appendTd(row,null,{'colspan' : colspanCross});
+				// cell navigation left-right
+				shiftLeftRightCell = me.appendNavTdLeftRight(row,null,{'colspan':colspan, 'class':'navTdLeftRight'});
+			}
+		}
+		if(me.isNavigationModeBar()){
+			if(me.navigationVisible && (me.isNavigationAlwaysVisible() || me.canShiftBottom())){
+				// row last
+				var row = this.appendTr(gridTable);
+				me.appendNavTdBottomLeft(row);
+				shiftBottomBar = me.appendNavTdBottom(row,null,{'colspan':colspan + colspanCross + colspanNavTopBottomBar, 'align':'center'});				
+				me.appendNavTdBottomRight(row);
+			}
 		}
 
 		/*
 		* SHIFT TOP RIGHT BOTTOM LEFT links and events
 		*/
 
-		// set navigation left right buttons only when canShiftLeft or canShiftRight
-		if(me.canShiftLeft() || me.canShiftRight()){
-			// append left shifter link
-			navDisabled = this.canShiftLeft()?'':'-dis';
-			link = new Element('a',{'href':'javascript:null;', 'class':'scrollLeft'+navDisabled, 'style':'float:left'});
-			link.observe('click',this.shiftLeft.bind(this));
-			shiftLeftRightCell.appendChild(link);
-			// append right shifter link
-			navDisabled = this.canShiftRight()?'':'-dis';
-			link = new Element('a',{'href':'javascript:null;', 'class':'scrollRight'+navDisabled, 'style':'float:right'});
-			link.observe('click',this.shiftRight.bind(this));
-			shiftLeftRightCell.appendChild(link);
+		// scroll bar mode
+		if(me.isNavigationModeScroll()){
+			// set navigation left right buttons only when canShiftLeft or canShiftRight
+			if(me.navigationVisible && (me.isNavigationAlwaysVisible() || me.canShiftLeft() || me.canShiftRight())){
+				// append left shifter link
+				navDisabled = this.canShiftLeft()?'':'-dis';
+				link = new Element('a',{'href':'javascript:null;', 'class':'scrollLeft'+navDisabled, 'style':'float:left'});
+				link.observe('click',this.shiftLeft.bind(this));
+				shiftLeftRightCell.appendChild(link);
+				// append right shifter link
+				navDisabled = this.canShiftRight()?'':'-dis';
+				link = new Element('a',{'href':'javascript:null;', 'class':'scrollRight'+navDisabled, 'style':'float:right'});
+				link.observe('click',this.shiftRight.bind(this));
+				shiftLeftRightCell.appendChild(link);
+			}
+			// set navigation top bottom buttons only when canShiftTop or canShiftBottom
+			if(me.navigationVisible && (me.isNavigationAlwaysVisible() || me.canShiftTop() || me.canShiftBottom())){
+				// append top shifter link
+				navDisabled = this.canShiftTop()?'':'-dis';
+				link = new Element('a',{'href':'javascript:null;', 'class':'scrollTop'+navDisabled});
+				link.observe('click',this.shiftTop.bind(this));
+				shiftTopBottomCell.appendChild(link);
+				// space between shiftTop and shiftBottom		
+				spacer = new Element('div',{'style':'height:'+((33*(rowspan))-42)+'px;'});		
+				shiftTopBottomCell.appendChild(spacer);
+				// append bottom shifter link
+				navDisabled = this.canShiftBottom()?'':'-dis';
+				link = new Element('a',{'href':'javascript:null;', 'class':'scrollBottom'+navDisabled});
+				link.observe('click',this.shiftBottom.bind(this));
+				shiftTopBottomCell.appendChild(link);
+			}
 		}
-		// set navigation top bottom buttons only when canShiftTop or canShiftBottom
-		if(me.canShiftTop() || me.canShiftBottom()){
-			// append top shifter link
-			navDisabled = this.canShiftTop()?'':'-dis';
-			link = new Element('a',{'href':'javascript:null;', 'class':'scrollTop'+navDisabled});
-			link.observe('click',this.shiftTop.bind(this));
-			shiftTopBottomCell.appendChild(link);
-			// space between shiftTop and shiftBottom		
-			spacer = new Element('div',{'style':'height:'+((33*(rowspan))-42)+'px;'});		
-			shiftTopBottomCell.appendChild(spacer);
-			// append bottom shifter link
-			navDisabled = this.canShiftBottom()?'':'-dis';
-			link = new Element('a',{'href':'javascript:null;', 'class':'scrollBottom'+navDisabled});
-			link.observe('click',this.shiftBottom.bind(this));
-			shiftTopBottomCell.appendChild(link);
+		
+		// navigation mode
+		if(me.isNavigationModeBar()){
+			// set navigation left right buttons only when canShiftLeft or canShiftRight			
+			if(me.navigationVisible && (me.isNavigationAlwaysVisible() || me.canShiftLeft())){
+				// append left shifter link	
+				navDisabled = this.canShiftLeft()?'':'-dis';
+				link = new Element('a',{'href':'javascript:null;', 'class':'scrollLeft'+navDisabled, 'style':'float:left'});
+				link.observe('click',this.shiftLeft.bind(this));
+				shiftLeftBar.appendChild(link);
+			}
+			if(me.navigationVisible && (me.isNavigationAlwaysVisible() || me.canShiftRight())){
+				// append right shifter link
+				navDisabled = this.canShiftRight()?'':'-dis';
+				link = new Element('a',{'href':'javascript:null;', 'class':'scrollRight'+navDisabled, 'style':'float:right'});
+				link.observe('click',this.shiftRight.bind(this));
+				shiftRightBar.appendChild(link);
+			}
+			// set navigation top bottom buttons only when canShiftTop or canShiftBottom
+			if(me.navigationVisible && (me.isNavigationAlwaysVisible() || me.canShiftTop())){
+				// append top shifter link
+				navDisabled = this.canShiftTop()?'':'-dis';
+				link = new Element('a',{'href':'javascript:null;', 'class':'scrollTop'+navDisabled});
+				link.observe('click',this.shiftTop.bind(this));
+				shiftTopBar.appendChild(link);
+			}
+			if(me.navigationVisible && (me.isNavigationAlwaysVisible() || me.canShiftBottom())){
+				// append bottom shifter link
+				navDisabled = this.canShiftBottom()?'':'-dis';
+				link = new Element('a',{'href':'javascript:null;', 'class':'scrollBottom'+navDisabled});
+				link.observe('click',this.shiftBottom.bind(this));
+				shiftBottomBar.appendChild(link);
+			}
 		}
+		
 		
 		/*
 		* finalize drawing
@@ -399,6 +507,9 @@ var WGrid = Class.create({
 		gridTable.observe('click',this.onMouseClick.bind(this));
 		gridTable.observe('mousemove',this.onMouseMove.bind(this));
 		gridTable.observe('mouseout',this.onMouseOut.bind(this));
+		
+		if(this.userGridCtrl) this.userGridCtrl.onDrawComplete(this);
+
 	},
 	
 	// -------------------------------------------------------------------------------------
@@ -414,6 +525,7 @@ var WGrid = Class.create({
 		var newTd = new Element('td',options);	
 		if(text) newTd.appendChild(document.createTextNode(text));		
 		trElem.appendChild(newTd);
+		
 		return newTd;
 	},
 	appendGridHdrTd: function(trElem, text, options){
@@ -424,16 +536,27 @@ var WGrid = Class.create({
 			newTd.appendChild(div);		
 		}
 		if(!newTd.hasClassName('gridHdrTd')) newTd.addClassName('gridHdrTd');
+		
 		return newTd;
 	},
 	appendGridHdrTdHorizontal: function(trElem, text, options){
 		newTd = this.appendGridHdrTd(trElem, text, options);
 		if(!newTd.hasClassName('gridHdrTdHorizontal')) newTd.addClassName('gridHdrTdHorizontal');
+
+		if(this.userGridCtrl) {
+			this.userGridCtrl.onCreateCell(this,newTd,'HDR_TITLE_HORIZONTAL');
+		}
+
 		return newTd;
 	},
 	appendGridHdrTdVertical: function(trElem, text, options){
 		newTd = this.appendGridHdrTd(trElem, text, options);
 		if(!newTd.hasClassName('gridHdrTdVertical')) newTd.addClassName('gridHdrTdVertical');
+
+		if(this.userGridCtrl) {
+			this.userGridCtrl.onCreateCell(this,newTd,'HDR_TITLE_VERTICAL');
+		}
+
 		return newTd;
 	},
 	appendGridHdrListTd: function(trElem, text, options,collapsed){
@@ -450,6 +573,11 @@ var WGrid = Class.create({
 			newTd.appendChild(div);		
 		}
 		if(!newTd.hasClassName('gridHdrListTd')) newTd.addClassName('gridHdrListTd');
+
+		if(this.userGridCtrl) {
+			this.userGridCtrl.onCreateCell(this,newTd,'HDR_LIST');
+		}
+
 		return newTd;
 	},
 	appendGridHdrValueTd: function(trElem, text, options){
@@ -460,18 +588,92 @@ var WGrid = Class.create({
 			newTd.appendChild(div);		
 		}
 		if(!newTd.hasClassName('gridHdrValueTd')) newTd.addClassName('gridHdrValueTd');
+
+		if(this.userGridCtrl) {
+			this.userGridCtrl.onCreateCell(this,newTd,'HDR_VALUE');
+		}
+
 		return newTd;
 	},
 	appendGridValueTd: function(trElem, text, options){
 		newTd = this.appendTd(trElem, text, options);
 		if(!newTd.hasClassName('gridValueTd')) newTd.addClassName('gridValueTd');
 		this.updateCellDisplayedState(newTd);
-		//if(newTd.id) newTd.appendChild(document.createTextNode(newTd.id))
+
+		if(this.userGridCtrl) {
+			this.userGridCtrl.onCreateCell(this,newTd,'BODY_VALUE');
+		}
+
 		return newTd;
 	},
 	appendNavTd: function(trElem, text, options){
 		newTd = this.appendTd(trElem, text, options);
 		if(!newTd.hasClassName('navTd')) newTd.addClassName('navTd');			
+
+		if(this.userGridCtrl) {
+			this.userGridCtrl.onCreateCell(this,newTd,'HDR_NAV');
+		}
+
+		return newTd;
+	},
+	appendNavTdTop: function(trElem, text, options){
+		newTd = this.appendNavTd(trElem, text, options);
+		newTd.addClassName('navTdTop');
+		if(this.userGridCtrl) this.userGridCtrl.onCreateCell(this,newTd,'HDR_NAV_TOP');
+		return newTd;
+	},
+	appendNavTdTopLeft: function(trElem, text, options){
+		newTd = this.appendNavTd(trElem, text, options);
+		newTd.addClassName('navTdTopLeft');
+		if(this.userGridCtrl) this.userGridCtrl.onCreateCell(this,newTd,'HDR_NAV_TOP_LEFT');
+		return newTd;
+	},
+	appendNavTdTopRight: function(trElem, text, options){
+		newTd = this.appendNavTd(trElem, text, options);
+		newTd.addClassName('navTdTopRight');
+		if(this.userGridCtrl) this.userGridCtrl.onCreateCell(this,newTd,'HDR_NAV_TOP_RIGHT');
+		return newTd;
+	},
+	appendNavTdBottom: function(trElem, text, options){
+		newTd = this.appendNavTd(trElem, text, options);
+		newTd.addClassName('navTdBottom');
+		if(this.userGridCtrl) this.userGridCtrl.onCreateCell(this,newTd,'HDR_NAV_BOTTOM');
+		return newTd;
+	},
+	appendNavTdBottomLeft: function(trElem, text, options){
+		newTd = this.appendNavTd(trElem, text, options);
+		newTd.addClassName('navTdBottomLeft');
+		if(this.userGridCtrl) this.userGridCtrl.onCreateCell(this,newTd,'HDR_NAV_BOTTOM_LEFT');
+		return newTd;
+	},
+	appendNavTdBottomRight: function(trElem, text, options){
+		newTd = this.appendNavTd(trElem, text, options);
+		newTd.addClassName('navTdBottomRight');
+		if(this.userGridCtrl) this.userGridCtrl.onCreateCell(this,newTd,'HDR_NAV_BOTTOM_RIGHT');
+		return newTd;
+	},
+	appendNavTdLeft: function(trElem, text, options){
+		newTd = this.appendNavTd(trElem, text, options);
+		newTd.addClassName('navTdLeft');
+		if(this.userGridCtrl) this.userGridCtrl.onCreateCell(this,newTd,'HDR_NAV_LEFT');
+		return newTd;
+	},
+	appendNavTdRight: function(trElem, text, options){
+		newTd = this.appendNavTd(trElem, text, options);
+		newTd.addClassName('navTdRight');
+		if(this.userGridCtrl) this.userGridCtrl.onCreateCell(this,newTd,'HDR_NAV_RIGHT');
+		return newTd;
+	},
+	appendNavTdTopBottom: function(trElem, text, options){
+		newTd = this.appendNavTd(trElem, text, options);
+		newTd.addClassName('navTdTopBottom');
+		if(this.userGridCtrl) this.userGridCtrl.onCreateCell(this,newTd,'HDR_NAV_TOP_BOTTOM');
+		return newTd;
+	},
+	appendNavTdLeftRight: function(trElem, text, options){
+		newTd = this.appendNavTd(trElem, text, options);
+		newTd.addClassName('navTdLeftRight');
+		if(this.userGridCtrl) this.userGridCtrl.onCreateCell(this,newTd,'HDR_NAV_LEFT_RIGHT');
 		return newTd;
 	},
 	updateCellDisplayedState: function(elemTd){
@@ -494,7 +696,7 @@ var WGrid = Class.create({
 		}
 			
 		if(this.userGridCtrl) {
-			this.userGridCtrl.onCreateCell(this, elemTd,cellState);
+			this.userGridCtrl.onUpdateCellState(this, elemTd,cellState);
 		}
 	},
 	
@@ -700,23 +902,22 @@ var WGrid = Class.create({
 		console.log('implement WGrid.toggleCheckStateList()');
 		// TODO
 	},
+	toggleHdrCollapseState: function(list, key){
+		list.each(
+			function(elm){
+				if(elm.type == 'LIST' && elm.key == key){					
+					elm.collapsed = !elm.collapsed;
+				}
+			}
+		);
+	},
 	toggleCollapseState: function(elemTd){
 		if(elemTd.id.startsWith('C')){ // column
-			this.data.cols.each(
-				function(elm){
-					if(elm.type == 'LIST' && elm.key == elemTd.id.substring(2)){					
-						elm.collapsed = !elm.collapsed;
-					}
-				}
-			);
+			if(this.transpose) this.toggleHdrCollapseState(this.data.rows,elemTd.id.substring(2));
+			else this.toggleHdrCollapseState(this.data.cols,elemTd.id.substring(2));
 		}else if(elemTd.id.startsWith('R')){ // row
-			this.data.rows.each(
-				function(elm){
-					if(elm.type == 'LIST' && elm.key == elemTd.id.substring(2)){					
-						elm.collapsed = !elm.collapsed;
-					}
-				}
-			);
+			if(this.transpose) this.toggleHdrCollapseState(this.data.cols,elemTd.id.substring(2));
+			else this.toggleHdrCollapseState(this.data.rows,elemTd.id.substring(2));
 		}
 	},
 	getCellsCount: function(list){
@@ -823,10 +1024,51 @@ var WGrid = Class.create({
 	getDisplayedDataRange: function(data){
 		displayedCols = this.getDisplayedListRange(data.cols, this.colShift, this.visibleColsCount);
 		displayedRows = this.getDisplayedListRange(data.rows, this.rowShift, this.visibleRowsCount);
-		
-		displayedData = {cols:displayedCols , rows:displayedRows}
+				
+		displayedData = {colsTitle:data.colsTitle, rowsTitle:data.rowsTitle, cols:displayedCols , rows:displayedRows}
 		return displayedData;
 	},	
+
+	// -------------------------------------------------------------------------------------
+	// CELLS IDS
+	// -------------------------------------------------------------------------------------
+	
+	transcodeGridHdrListColId: function(key){
+		if(this.transpose) return 'RL'+key;
+		return 'CL'+key;
+	},
+	transcodeGridHdrListRowId: function(key){
+		if(this.transpose) return 'CL'+key;
+		return 'RL'+key;
+	},
+	transcodeGridHdrColId: function(key){
+		if(this.transpose) return 'RV'+key;
+		return 'CV'+key;
+	},
+	transcodeGridHdrRowId: function(key){
+		if(this.transpose) return 'CV'+key;
+		return 'RV'+key;
+	},
+	transcodeId: function(prefix1, key1, prefix2, key2){
+		if(this.transpose) {
+			prefix1Trans = prefix1[0]+prefix2[1];
+			prefix2Trans = prefix2[0]+prefix1[1];
+			return prefix1Trans+key2+'_'+prefix2Trans+key1;
+		}
+		return prefix1+key1+'_'+prefix2+key2;
+	},
+	transcodeCLRL: function(key1, key2){
+		return this.transcodeId('CL', key1, 'RL', key2);
+	},
+	transcodeCVRL: function(key1, key2){
+		return this.transcodeId('CV', key1, 'RL', key2);
+	},
+	transcodeCLRV: function(key1, key2){
+		return this.transcodeId('CL', key1, 'RV', key2);
+	},
+	transcodeCVRV: function(key1, key2){
+		return this.transcodeId('CV', key1, 'RV', key2);
+	},
 	
 	// -------------------------------------------------------------------------------------
 	// GRID FILTER
@@ -894,20 +1136,52 @@ var WGrid = Class.create({
 		return null;
 	},
 	filterCols: function(filter){
-		filteredCols = this.getFilteredList(this.options.data.cols,filter);		
+		originalList = this.options.data.cols;
+		if(this.transpose) originalList = this.options.data.rows;
+		filteredCols = this.getFilteredList(originalList,filter);		
 		if(filteredCols){
+			this.data.filterCols = filter;
 			this.data.cols = filteredCols;
 			this.colShift= 0;
 			this.dispose();
 		}
 	},
 	filterRows: function(filter){
-		filteredRows = this.getFilteredList(this.options.data.rows,filter);		
+		originalList = this.options.data.rows;
+		if(this.transpose) originalList = this.options.data.cols;
+		filteredRows = this.getFilteredList(originalList,filter);		
 		if(filteredRows){
+			this.data.filterRows = filter;
 			this.data.rows = filteredRows;
 			this.rowShift= 0;
 			this.dispose();
 		}
+	},
+	
+	// -------------------------------------------------------------------------------------
+	// TRANSPOSE
+	// -------------------------------------------------------------------------------------
+	toggleGridTranspose: function(){
+		this.transpose = !this.transpose;
+		
+		tmpCols = this.data.cols;
+		tmpRows = this.data.rows;
+		tmpColsTitle = this.data.colsTitle;
+		tmpRowsTitle = this.data.rowsTitle;		
+		tmpFilterCols = this.data.filterCols;
+		tmpFilterRows = this.data.filterRows;
+		this.data = {colsTitle:tmpRowsTitle, rowsTitle:tmpColsTitle, cols:tmpRows, rows:tmpCols, filterCols:tmpFilterRows, filterRows:tmpFilterCols};
+		
+		tmpColShift = this.colShift;
+		tmpRowShift = this.rowShift;
+		this.colShift = tmpRowShift;
+		this.rowShift = tmpColShift;
+		
+		if(this.userGridCtrl) {
+			this.userGridCtrl.onGridTranspose(this);
+		}
+		
+		this.dispose();
 	},
 	
 	// -------------------------------------------------------------------------------------
@@ -943,7 +1217,7 @@ var WGrid = Class.create({
 	// SHIFT CELLS DEFAULT
 	// -------------------------------------------------------------------------------------
 	
-	shiftTop: function() {
+	shiftTop: function() {		
 		this.shiftTopCells(this.defautShiftCellsCount);
 	},
 	shiftBottom: function() {
@@ -973,6 +1247,27 @@ var WGrid = Class.create({
 		return this.getCellsCount(this.data.rows) - this.rowShift > this.visibleRowsCount; 
 	},
 
+	// -------------------------------------------------------------------------------------
+	// SHIFT CELLS MODE
+	// -------------------------------------------------------------------------------------
+	isNavigationAlwaysVisible: function(){
+		return this.navigationAlwaysVisible;
+	},
+	isNavigationModeBar: function(){
+		return this.navigationMode == 'BAR';
+	},
+	isNavigationModeScroll: function(){
+		return this.navigationMode == 'SCROLL';
+	},
+	toggleNavigationMode: function(){
+		if(this.navigationMode == 'SCROLL') 
+			this.navigationMode = 'BAR';
+		else
+			this.navigationMode = 'SCROLL';			
+			
+		this.dispose();
+	},
+	
 	// -------------------------------------------------------------------------------------
 	// OUTPUTS
 	// -------------------------------------------------------------------------------------

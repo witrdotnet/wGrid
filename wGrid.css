@@ -3,10 +3,6 @@
 	background-color : white;
 }
 
-.gridTable td{
-	padding 1px;
-}
-
 /*
 ------------------------------------------------------ HEADER TITLE
 */
@@ -26,11 +22,11 @@
 	font-weight: bold;					
 	white-space: nowrap;
 	text-overflow:ellipsis;
-	overflow:hidden;
-	margin: 0px 0px 0px 0px;
+	overflow:hidden;	
 	padding-left: 5px;	
 	height: 21px;
 	line-height : 21px;
+	float: left;
 }
 
 .gridHdrTdHorizontal div{		
@@ -50,7 +46,7 @@
 
 .gridHdrListTdHover{
 	background-color : white;
-	cursor : hand;
+	cursor : pointer;
 }
 
 .gridHdrListTd div{
@@ -106,7 +102,7 @@
 
 .gridHdrValueTdHover {
 	background-color : white; 
-	cursor : hand;
+	cursor : pointer;
 }
 
 .gridHdrValueTd div{
@@ -137,7 +133,7 @@
 
 .gridValueTdHover {
 	background-color : #F58988; 
-	cursor : hand;
+	cursor : pointer;
 }
 
 .gridValueCellChecked{
@@ -154,7 +150,7 @@
 }
 
 /*
------------------------------------------------------- SCROLL BARS
+------------------------------------------------------ NAVIGATION
 */
 
 .navTd {
@@ -163,16 +159,22 @@
 
 .navTdHover{
 	background-color : lightgray; 
-	cursor : hand;
+	cursor : pointer;
 }
 
-.navTdTopBottom{
-	
-}
+.navTdTopBottom{}
+.navTdLeftRight{}
 
-.navTdLeftRight{
-	
-}
+.navTdTop{}
+.navTdTopLeft{}
+.navTdTopRight{}
+
+.navTdBottom{}
+.navTdBottomLeft{}
+.navTdBottomRight{}
+
+.navTdLeft{}
+.navTdRight{}
 
 .scrollLeft{
 	display : block;

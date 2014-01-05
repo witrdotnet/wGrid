@@ -1,5 +1,5 @@
 function getRandomName(){
-	return getFixedLengthRandomName(20);
+	return getFixedLengthRandomName(4) + ' ' + getFixedLengthRandomName(4);
 }
 
 function getFixedLengthRandomName(charsCount){
@@ -7,7 +7,7 @@ function getFixedLengthRandomName(charsCount){
 }
 
 function getVariableLengthRandomName(minChars, maxChars){
-	name = 'l\'';
+	name = '';//'l\'';
 	charsCount = getRandomInt(minChars, maxChars);
 	for(j=0; j<charsCount; j++){
 		var randomnumber=Math.floor(Math.random()*25)+65
@@ -19,6 +19,122 @@ function getVariableLengthRandomName(minChars, maxChars){
 function getRandomInt(min,max){
 	return Math.floor(Math.random()*(max-min))+min;
 }
+
+// define customized user grid ctrl
+var GinUserCtrl = Class.create({	
+	initialize: function () {
+		this.filterColsText = null;
+		this.filterRowsText = null;
+	},	
+	displaySearchColsInput: function(){
+		ginUserCtrl.filterColsText = '';
+		// hide search rows
+		if($('searchActionButtonRows')) $('searchActionButtonRows').show();
+		if($('filterRowsBlock')) $('filterRowsBlock').hide();
+		// show search cols
+		$('searchActionButtonCols').hide();
+		$('filterColsBlock').show();
+		$('filterColsText').focus();
+	},
+	displaySearchRowsInput: function(){
+		ginUserCtrl.filterRowsText = '';
+		// hide search rows
+		if($('searchActionButtonCols')) $('searchActionButtonCols').show();
+		if($('filterColsBlock')) $('filterColsBlock').hide();
+		// show search cols
+		$('searchActionButtonRows').hide();
+		$('filterRowsBlock').show();
+		$('filterRowsText').focus();
+	},
+	onCreateCell: function(gridObject,elemTd,cellType){
+		switch(cellType){
+			case 'HDR_TITLE_HORIZONTAL': 
+				if(gridObject.data.filterCols && gridObject.data.filterCols.trim().length > 0){
+					divFilterText = new Element('div',{'style':'margin-left:10px;float:left'});
+					divFilterText.innerHTML = "( "+ gridObject.data.filterCols;
+					buttonClearFilter = new Element('img',{'class':'clearFilterButton','onclick':'grid.filterCols(\'\')'});
+
+					divFilterText2 = new Element('div',{'style':'float:left'});
+					divFilterText2.innerHTML = " )";
+					
+					elemTd.appendChild(divFilterText);
+					elemTd.appendChild(buttonClearFilter);
+					elemTd.appendChild(divFilterText2);
+				}else{
+					searchActionButton = new Element('div',{'id':'searchActionButtonCols','class':'filterButton','onclick':'ginUserCtrl.displaySearchColsInput($(this));'});
+					inputFilterText = new Element('input',{'type':'text','id':'filterColsText','style':'margin-left:10px;float:left'});
+					buttonSubmitFilter = new Element('img',{'class':'filterButton','onclick':'grid.filterCols($(\'filterColsText\').value)'});
+					filterColsBlock = new Element('div',{'id':'filterColsBlock','style':'display:none;height:30px;'});
+					filterColsBlock.appendChild(inputFilterText);
+					filterColsBlock.appendChild(buttonSubmitFilter);
+					elemTd.appendChild(searchActionButton);
+					elemTd.appendChild(filterColsBlock);
+				}					
+				break;
+			case 'HDR_TITLE_VERTICAL': 					
+				if(gridObject.data.filterRows && gridObject.data.filterRows.trim().length > 0){
+					divFilterText = new Element('div',{'style':'margin-left:10px;float:left'});
+					divFilterText.innerHTML = "( "+ gridObject.data.filterRows;
+					buttonClearFilter = new Element('img',{'class':'clearFilterButton','onclick':'grid.filterRows(\'\')'});
+
+					divFilterText2 = new Element('div',{'style':'float:left'});
+					divFilterText2.innerHTML = " )";
+					
+					elemTd.appendChild(divFilterText);
+					elemTd.appendChild(buttonClearFilter);
+					elemTd.appendChild(divFilterText2);
+				}else{
+					searchActionButton = new Element('div',{'id':'searchActionButtonRows','class':'filterButton','onclick':'ginUserCtrl.displaySearchRowsInput($(this));'});
+					inputFilterText = new Element('input',{'type':'text','id':'filterRowsText','style':'margin-left:10px;float:left'});
+					buttonSubmitFilter = new Element('img',{'class':'filterButton','onclick':'grid.filterRows($(\'filterRowsText\').value)'});
+					filterRowsBlock = new Element('div',{'id':'filterRowsBlock','style':'display:none;height:30px;'});						
+					filterRowsBlock.appendChild(inputFilterText);
+					filterRowsBlock.appendChild(buttonSubmitFilter);
+					elemTd.appendChild(searchActionButton);
+					elemTd.appendChild(new Element('br'));
+					elemTd.appendChild(filterRowsBlock);
+				}					
+				break;
+		}
+	},
+	onDrawComplete: function(gridObject){	
+	},
+	onUpdateCellState: function(gridObject, elemTd,cellState){
+		person = null;
+		if(!cellState.enabled){
+			disabledValuesList.each(
+				function(disVal){								
+					if(disVal.alreadyDelegatedTo){
+						if('CV'+disVal.colId + '_RV' + disVal.rowId == elemTd.id){
+							person = disVal.alreadyDelegatedTo;
+							throw $break;
+						}
+					}
+				}
+			);
+			if(person){
+				elemTd.innerHTML = '';
+				if(!elemTd.hasClassName('cell-dis')) elemTd.addClassName('cell-dis');
+				elemTd.removeClassName('gridValueCellDisabled');
+				elemTd.innerHTML = person;						
+			}
+		}
+	},
+	onSelectionChange: function(gridObject,elemTd,cellState){
+		console.log(gridObject.selectedValues);
+		$('serializedSelected').value = gridObject.selectedValues;
+	},
+	onCreateCrossCell: function(gridObject,elemTd){
+		elemTd.innerHTML = "<a href='javascript:grid.toggleGridTranspose();' style='font-size:15px;font-weight:bold;'>TRANS</a>";
+	},
+	onGridTranspose : function(gridObject){
+		tmpFilterCols = this.filterColsText;
+		tmpFilterRows = this.filterRowsText;
+		
+		this.filterColsText = tmpFilterRows;
+		this.filterRowsText = tmpFilterCols;
+	}
+});
 
 	eventsListenersAlreadyBound = false;
 	ginUserCtrl = null;
@@ -82,7 +198,7 @@ function startDemo(phase,options){
 			colsList.push({type:'LIST', key:listId, name:listName, elements : valuesList2, collapsed:false});			
 			setTimeout("startDemo(0,{'valId':"+valId+",'listId':"+listId+"});",pauseTime);
 		}else{
-			setTimeout("startDemo(1,{'valId':"+valId+"});",pauseTime);
+			setTimeout("startDemo(1,{'valId':"+valId+",'listId':"+(listId-1)+"});",pauseTime);
 		}
 		
 	}
@@ -99,7 +215,7 @@ function startDemo(phase,options){
 		
 		// memorize max col id 
 		maxColId = valId;
-		setTimeout("startDemo(2,{'valId':0,'listId':0});",pauseTime);
+		setTimeout("startDemo(2,{'valId':0,'listId':"+options.listId+"});",pauseTime);
 	}
 
 	if(phase == 2){	
@@ -107,7 +223,7 @@ function startDemo(phase,options){
 		listId = options.listId;		
 		listId++;
 		valId = options.valId;
-		if(listId <= rowsListsCount){
+		if(listId <= colsListsCount + rowsListsCount){
 			valuesList2 = new Array();
 			valuesListCount = getRandomInt(minValuesInLists,maxValuesInLists);				
 			for(v =1; v<=valuesListCount;v++) {
@@ -668,35 +784,6 @@ function startDemo9(){
 	disabledValuesList = new Array();
 	alreadySelectedValuesList = new Array();
 
-	// define customized user grid ctrl
-	var GinUserCtrl = Class.create({	
-		onCreateCell: function(gridObject, elemTd,cellState){
-			person = null;
-			if(!cellState.enabled){
-				disabledValuesList.each(
-					function(disVal){								
-						if(disVal.alreadyDelegatedTo){
-							if('CV'+disVal.colId + '_RV' + disVal.rowId == elemTd.id){
-								person = disVal.alreadyDelegatedTo;
-								throw $break;
-							}
-						}
-					}
-				);
-				if(person){
-					elemTd.innerHTML = '';
-					if(!elemTd.hasClassName('cell-dis')) elemTd.addClassName('cell-dis');
-					elemTd.removeClassName('gridValueCellDisabled');
-					elemTd.innerHTML = person;						
-				}
-			}
-		},
-		onSelectionChange: function(gridObject,elemTd,cellState){
-			console.log(gridObject.selectedValues);
-			$('serializedSelected').value = gridObject.selectedValues;
-		}
-	});
-	
 	ginUserCtrl = new GinUserCtrl;
 	
 	startDemo(0,{'valId':0,'listId':0});	
@@ -747,35 +834,56 @@ function startDemo10(){
 	disabledValuesList = new Array();
 	alreadySelectedValuesList = new Array();
 	
-	// define customized user grid ctrl
-	var GinUserCtrl = Class.create({	
-		onCreateCell: function(gridObject, elemTd,cellState){
-			person = null;
-			if(!cellState.enabled){
-				disabledValuesList.each(
-					function(disVal){								
-						if(disVal.alreadyDelegatedTo){
-							if('CV'+disVal.colId + '_RV' + disVal.rowId == elemTd.id){
-								person = disVal.alreadyDelegatedTo;
-								throw $break;
-							}
-						}
-					}
-				);
-				if(person){
-					elemTd.innerHTML = '';
-					if(!elemTd.hasClassName('cell-dis')) elemTd.addClassName('cell-dis');
-					elemTd.removeClassName('gridValueCellDisabled');
-					elemTd.innerHTML = person;						
-				}
-			}
-		},
-		onSelectionChange: function(gridObject,elemTd,cellState){
-			console.log(gridObject.selectedValues);
-			$('serializedSelected').value = gridObject.selectedValues;
-		}
-	});
+	ginUserCtrl = new GinUserCtrl;
+	
+	startDemo(0,{'valId':0,'listId':0});
+}	
 
+/********************************************************************************
+****** DEMO 11
+*********************************************************************************/
+
+function startDemo11(){
+
+	$('demoTitle').innerHTML = "DEMO 11";
+
+	colsTitle = getRandomName();
+	rowsTitle = getRandomName();
+	
+	minColsListsCount = 10;
+	maxColsListsCount = 10;
+
+	minRowsListsCount = 10;
+	maxRowsListsCount = 10;
+
+	minValuesInLists = 10;
+	maxValuesInLists = 10;
+
+	minColsValuesCount = 100;
+	maxColsValuesCount = 100;
+
+	minRowsValuesCount = 100;
+	maxRowsValuesCount = 100;
+
+	disValuesCount = 5000;
+	alreadySelectedValuesCount = 5000;
+
+	visibleCols = 6;
+	visibleRows = 6;
+	
+	rowsListsCount = getRandomInt(minRowsListsCount, maxRowsListsCount);
+	colsListsCount = getRandomInt(minColsListsCount, maxColsListsCount);
+	maxColId = 0;
+	maxRowId = 0;
+
+	callCount = 0;
+	pauseTime = 1;
+
+	colsList = new Array();
+	rowsList = new Array();
+	disabledValuesList = new Array();
+	alreadySelectedValuesList = new Array();
+	
 	ginUserCtrl = new GinUserCtrl;
 	
 	startDemo(0,{'valId':0,'listId':0});
