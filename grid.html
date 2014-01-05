@@ -1,0 +1,56 @@
+<html>
+	<head>
+		<script charset="utf-8" src="./prototype.js" type="text/javascript"></script>	
+		<script charset="utf-8" src="./scriptaculous.js" type="text/javascript"></script>	
+		<script charset="utf-8" src="./wGrid.js" type="text/javascript"></script>	
+		<link rel="stylesheet" type="text/css" href="wGrid.css" /> 
+		<style>
+			
+		</style>
+	</head>
+	<body>
+		<input type=text id='filterColsText' /> <input type=button value="filtrer Cols" onclick="javascript:grid.filterCols($('filterColsText').value)"/><br/>
+		<input type=text id='filterRowsText' /> <input type=button value="filtrer Rows" onclick="javascript:grid.filterRows($('filterRowsText').value)"/><br/>
+	
+		<div id ='cont'></div>
+		<script language = "javascript">
+			cols = 15;
+			rows = 15;
+			visibleCols = 10;
+			visibleRows = 10;
+		
+			var topList = new Array();
+			var leftList = new Array();
+			for(i =1; i<=cols;i++) {
+				name = '';
+				for(j=0; j<5; j++){
+					var randomnumber=Math.floor(Math.random()*25)+65
+					name = name + String.fromCharCode(randomnumber);
+				}
+				topList.push({key:i, value:name +"("+i+")"});
+			}
+			for(i =1; i<=rows;i++) {
+				name = '';
+				for(j=0; j<5; j++){
+					var randomnumber=Math.floor(Math.random()*25)+65
+					name = name + String.fromCharCode(randomnumber);
+				}
+				leftList.push({key:i, value:name +"("+i+")"});
+			}
+			grid = new WGrid('cont',{
+										cols:{lists:topList}
+										,rows:{lists:leftList}
+										,grid:{visibleColsCount:visibleCols,visibleRowsCount:visibleRows}
+										}
+								);
+			Event.observe(document, 'keydown', function(event){ 				
+				if(event.keyCode == Event.KEY_RIGHT) grid.shiftRight();
+				if(event.keyCode == Event.KEY_LEFT) grid.shiftLeft();
+				if(event.keyCode == Event.KEY_UP) grid.shiftTop();
+				if(event.keyCode == Event.KEY_DOWN) grid.shiftBottom();
+			});
+			
+		</script>
+		
+	</body>
+</html>

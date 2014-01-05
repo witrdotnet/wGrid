@@ -1,0 +1,52 @@
+.gridTable{border:1px solid gray;}
+
+.gridHdrTd{
+	border: 1px solid gray;
+	background-color : #5E5E5F; 
+}
+
+.gridHdrHover {
+	background-color : #F58988; 
+	cursor : hand;
+}
+.gridHdrTd div{
+	color: white;
+	font-family: arial, helvetica, sans-serif;
+	font-size: 11px;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: bold;				
+	width:70px;
+	white-space: nowrap;
+	text-overflow:ellipsis;
+	overflow:hidden;
+}
+
+.gridHdrTdHover {
+	background-color : silver; 
+	cursor : hand;
+}
+
+.gridValueTd {
+	background-color : #EFEFEF;
+}
+
+.gridValueTdHover {
+	background-color : #F58988; 
+	cursor : hand;
+}
+
+.navTd {
+	text-align:center;
+	color: white;
+}
+
+.navTdHover{
+	background-color : lightgray; 
+	cursor : hand;
+}
+
+
+.gridValueCellSelected{
+	background-color : gray;
+}
