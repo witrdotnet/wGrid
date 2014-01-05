@@ -1,41 +1,55 @@
 .gridTable{
-	border-collapse : separate;
+	border-collapse : separate;	
+	background-color : white;
 }
+
+.gridTable td{
+	padding 1px;
+}
+
+/*
+------------------------------------------------------ HEADER TITLE
+*/
 
 .gridHdrTd{
 	border: none;
-	background-color : #5E5E5F; 
+	background-color : #CCC; 	
+	text-align : left;
+	color : black;
 }
 
-.gridHdrTdHover {
-	background-color : red; 
-	cursor : hand;
-}
-
-.gridHdrTd div{
-	color: white;
+.gridHdrTd div{	
 	font-family: arial, helvetica, sans-serif;
-	font-size: 11px;
+	font-size: 13px;
 	font-style: normal;
 	font-variant: normal;
-	font-weight: bold;				
-	width:70px;
+	font-weight: bold;					
 	white-space: nowrap;
 	text-overflow:ellipsis;
 	overflow:hidden;
-	margin: 4px 0px 4px 0px;
-	padding-left: 25px;
+	margin: 0px 0px 0px 0px;
+	padding-left: 5px;	
 	height: 21px;
-	line-height : 15px;
+	line-height : 21px;
 }
 
+.gridHdrTdHorizontal div{		
+}
+
+.gridHdrTdVertical div{
+}
+
+/*
+------------------------------------------------------ HEADER LIST
+*/
+
 .gridHdrListTd{
-	border: none;
-	background-color : #CCC;
+	border: 1px solid gray;
+	background-color : white;
 }
 
 .gridHdrListTdHover{
-	background-color : #CCC;
+	background-color : white;
 	cursor : hand;
 }
 
@@ -64,14 +78,84 @@
 	background : url('./images/close.gif') no-repeat;
 }
 
+/*
+------------------------------------------------------ HEADER ORPHAN LIST
+*/
+
+.gridHdrListOrphanTd{
+	border: none;
+	background-color : lightgray;
+}
+
+.gridHdrListColOrphanTd{
+	height : 31px;
+}
+
+.gridHdrListRowOrphanTd{
+	width : 95px;
+}
+
+/*
+------------------------------------------------------ HEADER VALUE
+*/
+
+.gridHdrValueTd{
+	border: 1px solid gray;
+	background-color : white; 
+}
+
+.gridHdrValueTdHover {
+	background-color : white; 
+	cursor : hand;
+}
+
+.gridHdrValueTd div{
+	color: gray;
+	font-family: arial, helvetica, sans-serif;
+	font-size: 11px;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: bold;				
+	width:90px;
+	white-space: nowrap;
+	text-overflow:ellipsis;
+	overflow:hidden;
+	margin: 4px 0px 4px 0px;
+	padding-left: 5px;
+	height: 21px;
+	line-height : 15px;
+}
+
+/*
+------------------------------------------------------ BODY CELLS
+*/
+
 .gridValueTd {
 	background-color : #EFEFEF;
+	border-bottom : 1px solid silver;
 }
 
 .gridValueTdHover {
 	background-color : #F58988; 
 	cursor : hand;
 }
+
+.gridValueCellChecked{
+	background-color : #898686;	
+}
+
+.gridValueCellMiChecked{
+	background-color : #B4ADA6;
+}
+
+.gridValueCellDisabled{
+	background-color : white;
+	cursor : default;
+}
+
+/*
+------------------------------------------------------ SCROLL BARS
+*/
 
 .navTd {
 	background-color : #A1FFE1;
@@ -88,19 +172,6 @@
 
 .navTdLeftRight{
 	
-}
-
-.gridValueCellChecked{
-	background-color : #898686;	
-}
-
-.gridValueCellMiChecked{
-	background-color : #B4ADA6;
-}
-
-.gridValueCellDisabled{
-	background-color : white;
-	cursor : default;
 }
 
 .scrollLeft{
@@ -162,6 +233,10 @@
 	height : 21px;
 	cursor : default;
 }
+
+/*
+------------------------------------------------------ PROGRESS
+*/
 
 .progress{
 	display : block;

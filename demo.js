@@ -7,7 +7,7 @@ function getFixedLengthRandomName(charsCount){
 }
 
 function getVariableLengthRandomName(minChars, maxChars){
-	name = '';
+	name = 'l\'';
 	charsCount = getRandomInt(minChars, maxChars);
 	for(j=0; j<charsCount; j++){
 		var randomnumber=Math.floor(Math.random()*25)+65
@@ -20,18 +20,23 @@ function getRandomInt(min,max){
 	return Math.floor(Math.random()*(max-min))+min;
 }
 
+	eventsListenersAlreadyBound = false;
+	ginUserCtrl = null;
 
-	minColsListsCount = 0;
-	maxColsListsCount = 5;
+	colsTitle = getRandomName();
+	rowsTitle = getRandomName();
+
+	minColsListsCount = 2;
+	maxColsListsCount = 2;
 
 	minRowsListsCount = 0;
 	maxRowsListsCount = 5;
 
 	minValuesInLists = 3;
-	maxValuesInLists = 10;
+	maxValuesInLists = 3;
 
-	minColsValuesCount = 0;
-	maxColsValuesCount = 20;
+	minColsValuesCount = 3;
+	maxColsValuesCount = 3;
 
 	minRowsValuesCount = 0;
 	maxRowsValuesCount = 20;
@@ -54,7 +59,8 @@ function getRandomInt(min,max){
 	var rowsList = new Array();
 	var disabledValuesList = new Array();
 	var alreadySelectedValuesList = new Array();
-	
+
+
 function startDemo(phase,options){
 	if($('cont').down()) $('cont').down().remove();
 	$('cont').innerHTML = "<div class='progress'>generating data : " + (callCount++) + "</div>";
@@ -164,83 +170,613 @@ function startDemo(phase,options){
 	}
 	
 	if(phase == 6){
-		// define customized user grid ctrl
-		var GinUserCtrl = Class.create({	
-			onCreateCell: function(gridObject, elemTd,cellState){
-				person = null;
-				if(!cellState.enabled){
-					disabledValuesList.each(
-						function(disVal){								
-							if(disVal.alreadyDelegatedTo){
-								if('CV'+disVal.colId + '_RV' + disVal.rowId == elemTd.id){
-									person = disVal.alreadyDelegatedTo;
-									throw $break;
-								}
-							}
-						}
-					);
-					if(person){
-						elemTd.innerHTML = '';
-						if(!elemTd.hasClassName('cell-dis')) elemTd.addClassName('cell-dis');
-						elemTd.removeClassName('gridValueCellDisabled');
-						elemTd.innerHTML = person;						
-					}
-				}
-			}
-		});
-		var ginUserCtrl = new GinUserCtrl;
 
 		// create Grid with customized gridCtrl
 		grid = new WGrid('cont',{
 								userGridCtrl : ginUserCtrl,
-								data : {cols:colsList, rows:rowsList},
+								data : {cols:colsList, rows:rowsList, colsTitle : colsTitle, rowsTitle : rowsTitle},
 								disabledValues: disabledValuesList,
 								alreadySelectedValues: alreadySelectedValuesList,
 								grid:{visibleColsCount:visibleCols,visibleRowsCount:visibleRows}
 								}
 							);
+		// init selected values input text
+		$('serializedSelected').value = grid.selectedValues;
+		// add keys listeners
 		evtText = false;
-		Event.observe($('filterColsText'), 'keyup', function(event){ 				
-			grid.filterCols(event.target.value);
-			evtText = true;				
-		});
-		Event.observe($('filterRowsText'), 'keyup', function(event){ 				
-			grid.filterRows(event.target.value);
-			evtText = true;				
-		});			
-		Event.observe($('clearFilterCols'), 'click', function(event){
-			$('filterColsText').value=null;
-			grid.filterCols('');
-			event.stop();
-		});
-		Event.observe($('clearFilterRows'), 'click', function(event){
-			$('filterRowsText').value=null;
-			grid.filterRows('');
-			event.stop();
-		});
-		Event.observe(document, 'keydown', function(event){ 				
-			if(!evtText){
-				if(event.keyCode == Event.KEY_RIGHT) { grid.shiftRight(); event.stop(); }
-				if(event.keyCode == Event.KEY_LEFT) { grid.shiftLeft(); event.stop(); }
-				if(event.keyCode == Event.KEY_UP) { grid.shiftTop(); event.stop(); }
-				if(event.keyCode == Event.KEY_DOWN) { grid.shiftBottom(); event.stop(); }
-			}else{
-				evtText = false;
-			}
-		});
+		if(!eventsListenersAlreadyBound){
+			Event.observe($('filterColsText'), 'keyup', function(event){ 				
+				grid.filterCols(event.target.value);
+				evtText = true;				
+			});
+			Event.observe($('filterRowsText'), 'keyup', function(event){ 				
+				grid.filterRows(event.target.value);
+				evtText = true;				
+			});			
+			// add clear filter actions
+			Event.observe($('clearFilterCols'), 'click', function(event){
+				$('filterColsText').value=null;
+				grid.filterCols('');
+				event.stop();
+			});
+			Event.observe($('clearFilterRows'), 'click', function(event){
+				$('filterRowsText').value=null;
+				grid.filterRows('');
+				event.stop();
+			});
+			Event.observe(document, 'keydown', function(event){ 				
+				if(!evtText){
+					if(event.keyCode == Event.KEY_RIGHT) { grid.shiftRight(); event.stop(); }
+					if(event.keyCode == Event.KEY_LEFT) { grid.shiftLeft(); event.stop(); }
+					if(event.keyCode == Event.KEY_UP) { grid.shiftTop(); event.stop(); }
+					if(event.keyCode == Event.KEY_DOWN) { grid.shiftBottom(); event.stop(); }
+				}else{
+					evtText = false;
+				}
+			});
+			eventsListenersAlreadyBound = true;
+		}
 		
 		// print stats of generated data
 		stats = grid.getStatistics();
-		$('generatedData').innerHTML =	"<table>" +										
-										"<tr><td>GRID</td><td>" + stats.originalData.totalCols + " x " + stats.originalData.totalRows + "</td><td>columns[lists:"+stats.originalData.totalColsLists+" , orphans:"+stats.originalData.totalColsOrphan+"]</td><td>rows[lists:"+stats.originalData.totalRowsLists+" , orphans:"+stats.originalData.totalRowsOrphan+"]</td></tr>" +
-										//"<tr><td>FILTERED</td><td>" + stats.filteredData.totalCols + " x " + stats.filteredData.totalRows + "</td><td>columns[lists:"+stats.filteredData.totalColsLists+" , orphans:"+stats.filteredData.totalColsOrphan+"]</td><td>rows[lists:"+stats.filteredData.totalRowsLists+" , orphans:"+stats.filteredData.totalRowsOrphan+"]</td></tr>" +
-										//"<tr><td>DISPLAYED</td><td>" + stats.displayedData.totalCols + " x " + stats.displayedData.totalRows + "</td><td>columns[lists:"+stats.displayedData.totalColsLists+" , orphans:"+stats.displayedData.totalColsOrphan+"]</td><td>rows[lists:"+stats.displayedData.totalRowsLists+" , orphans:"+stats.displayedData.totalRowsOrphan+"]</td></tr>" +
-										"</table>";
-			/*
-				"<br/> columns lists = " + stats.totalColsLists +
-				"<br/> orphan columns = " + stats.totalColsOrphan +
-				"<br/> rows lists = " + stats.totalRowsLists +
-				"<br/> orphan rows = " + stats.totalRowsOrphan;
-			*/
+		$('generatedData').innerHTML =	"GRID " + stats.originalData.totalCols + " x " + stats.originalData.totalRows;
 	}
 }
+
+/********************************************************************************
+****** DEMO 1
+*********************************************************************************/
+
+function startDemo1(){
+
+	$('demoTitle').innerHTML = "DEMO 1";
+
+	colsTitle = '';
+	rowsTitle = '';
+	
+	minColsListsCount = 0;
+	maxColsListsCount = 0;
+
+	minRowsListsCount = 0;
+	maxRowsListsCount = 0;
+
+	minValuesInLists = 0;
+	maxValuesInLists = 0;
+
+	minColsValuesCount = 7;
+	maxColsValuesCount = 7;
+
+	minRowsValuesCount = 0;
+	maxRowsValuesCount = 0;
+
+	disValuesCount = 0;
+	alreadySelectedValuesCount = 0;
+
+	visibleCols = 7;
+	visibleRows = 7;
+	
+	rowsListsCount = getRandomInt(minRowsListsCount, maxRowsListsCount);
+	colsListsCount = getRandomInt(minColsListsCount, maxColsListsCount);
+	maxColId = 0;
+	maxRowId = 0;
+
+	callCount = 0;
+	pauseTime = 1;
+
+	colsList = new Array();
+	rowsList = new Array();
+	disabledValuesList = new Array();
+	alreadySelectedValuesList = new Array();
+
+	ginUserCtrl = null;
+	
+	startDemo(0,{'valId':0,'listId':0});
+}
+
+/********************************************************************************
+****** DEMO 2
+*********************************************************************************/
+
+function startDemo2(){
+
+	$('demoTitle').innerHTML = "DEMO 2";
+
+	colsTitle = '';
+	rowsTitle = '';
+	
+	minColsListsCount = 0;
+	maxColsListsCount = 0;
+
+	minRowsListsCount = 0;
+	maxRowsListsCount = 0;
+
+	minValuesInLists = 0;
+	maxValuesInLists = 0;
+
+	minColsValuesCount = 0;
+	maxColsValuesCount = 0;
+
+	minRowsValuesCount = 7;
+	maxRowsValuesCount = 7;
+
+	disValuesCount = 0;
+	alreadySelectedValuesCount = 0;
+
+	visibleCols = 7;
+	visibleRows = 7;
+	
+	rowsListsCount = getRandomInt(minRowsListsCount, maxRowsListsCount);
+	colsListsCount = getRandomInt(minColsListsCount, maxColsListsCount);
+	maxColId = 0;
+	maxRowId = 0;
+
+	callCount = 0;
+	pauseTime = 1;
+
+	colsList = new Array();
+	rowsList = new Array();
+	disabledValuesList = new Array();
+	alreadySelectedValuesList = new Array();
+	
+	ginUserCtrl = null;
+
+	startDemo(0,{'valId':0,'listId':0});
+}	
+
+/********************************************************************************
+****** DEMO 3
+*********************************************************************************/
+
+function startDemo3(){
+
+	$('demoTitle').innerHTML = "DEMO 3";
+
+	colsTitle = '';
+	rowsTitle = '';
+	
+	minColsListsCount = 0;
+	maxColsListsCount = 0;
+
+	minRowsListsCount = 0;
+	maxRowsListsCount = 0;
+
+	minValuesInLists = 0;
+	maxValuesInLists = 0;
+
+	minColsValuesCount = 7;
+	maxColsValuesCount = 7;
+
+	minRowsValuesCount = 7;
+	maxRowsValuesCount = 7;
+
+	disValuesCount = 0;
+	alreadySelectedValuesCount = 0;
+
+	visibleCols = 7;
+	visibleRows = 7;
+	
+	rowsListsCount = getRandomInt(minRowsListsCount, maxRowsListsCount);
+	colsListsCount = getRandomInt(minColsListsCount, maxColsListsCount);
+	maxColId = 0;
+	maxRowId = 0;
+
+	callCount = 0;
+	pauseTime = 1;
+
+	colsList = new Array();
+	rowsList = new Array();
+	disabledValuesList = new Array();
+	alreadySelectedValuesList = new Array();
+	
+	ginUserCtrl = null;
+
+	startDemo(0,{'valId':0,'listId':0});
+}	
+
+/********************************************************************************
+****** DEMO 4
+*********************************************************************************/
+
+function startDemo4(){
+
+	$('demoTitle').innerHTML = "DEMO 4";
+
+	colsTitle = '';
+	rowsTitle = '';
+	
+	minColsListsCount = 2;
+	maxColsListsCount = 2;
+
+	minRowsListsCount = 2;
+	maxRowsListsCount = 2;
+
+	minValuesInLists = 3;
+	maxValuesInLists = 3;
+
+	minColsValuesCount = 1;
+	maxColsValuesCount = 1;
+
+	minRowsValuesCount = 1;
+	maxRowsValuesCount = 1;
+
+	disValuesCount = 0;
+	alreadySelectedValuesCount = 0;
+
+	visibleCols = 7;
+	visibleRows = 7;
+	
+	rowsListsCount = getRandomInt(minRowsListsCount, maxRowsListsCount);
+	colsListsCount = getRandomInt(minColsListsCount, maxColsListsCount);
+	maxColId = 0;
+	maxRowId = 0;
+
+	callCount = 0;
+	pauseTime = 1;
+
+	colsList = new Array();
+	rowsList = new Array();
+	disabledValuesList = new Array();
+	alreadySelectedValuesList = new Array();
+
+	ginUserCtrl = null;
+
+	startDemo(0,{'valId':0,'listId':0});
+}	
+
+/********************************************************************************
+****** DEMO 5
+*********************************************************************************/
+
+function startDemo5(){
+
+	$('demoTitle').innerHTML = "DEMO 5";
+
+	colsTitle = getRandomName();
+	rowsTitle = getRandomName();
+	
+	minColsListsCount = 2;
+	maxColsListsCount = 2;
+
+	minRowsListsCount = 2;
+	maxRowsListsCount = 2;
+
+	minValuesInLists = 3;
+	maxValuesInLists = 3;
+
+	minColsValuesCount = 1;
+	maxColsValuesCount = 1;
+
+	minRowsValuesCount = 1;
+	maxRowsValuesCount = 1;
+
+	disValuesCount = 0;
+	alreadySelectedValuesCount = 0;
+
+	visibleCols = 7;
+	visibleRows = 7;
+	
+	rowsListsCount = getRandomInt(minRowsListsCount, maxRowsListsCount);
+	colsListsCount = getRandomInt(minColsListsCount, maxColsListsCount);
+	maxColId = 0;
+	maxRowId = 0;
+
+	callCount = 0;
+	pauseTime = 1;
+
+	colsList = new Array();
+	rowsList = new Array();
+	disabledValuesList = new Array();
+	alreadySelectedValuesList = new Array();
+
+	ginUserCtrl = null;
+
+	startDemo(0,{'valId':0,'listId':0});
+}	
+
+/********************************************************************************
+****** DEMO 6
+*********************************************************************************/
+
+function startDemo6(){
+
+	$('demoTitle').innerHTML = "DEMO 6";
+
+	colsTitle = getRandomName();
+	rowsTitle = getRandomName();
+	
+	minColsListsCount = 3;
+	maxColsListsCount = 3;
+
+	minRowsListsCount = 3;
+	maxRowsListsCount = 3;
+
+	minValuesInLists = 3;
+	maxValuesInLists = 3;
+
+	minColsValuesCount = 7;
+	maxColsValuesCount = 7;
+
+	minRowsValuesCount = 7;
+	maxRowsValuesCount = 7;
+
+	disValuesCount = 0;
+	alreadySelectedValuesCount = 0;
+
+	visibleCols = 6;
+	visibleRows = 6;
+	
+	rowsListsCount = getRandomInt(minRowsListsCount, maxRowsListsCount);
+	colsListsCount = getRandomInt(minColsListsCount, maxColsListsCount);
+	maxColId = 0;
+	maxRowId = 0;
+
+	callCount = 0;
+	pauseTime = 1;
+
+	colsList = new Array();
+	rowsList = new Array();
+	disabledValuesList = new Array();
+	alreadySelectedValuesList = new Array();
+
+	ginUserCtrl = null;
+
+	startDemo(0,{'valId':0,'listId':0});
+}	
+
+/********************************************************************************
+****** DEMO 7
+*********************************************************************************/
+
+function startDemo7(){
+
+	$('demoTitle').innerHTML = "DEMO 7";
+
+	colsTitle = getRandomName();
+	rowsTitle = getRandomName();
+	
+	minColsListsCount = 3;
+	maxColsListsCount = 3;
+
+	minRowsListsCount = 3;
+	maxRowsListsCount = 3;
+
+	minValuesInLists = 3;
+	maxValuesInLists = 3;
+
+	minColsValuesCount = 7;
+	maxColsValuesCount = 7;
+
+	minRowsValuesCount = 7;
+	maxRowsValuesCount = 7;
+
+	disValuesCount = 0;
+	alreadySelectedValuesCount = 200;
+
+	visibleCols = 6;
+	visibleRows = 6;
+	
+	rowsListsCount = getRandomInt(minRowsListsCount, maxRowsListsCount);
+	colsListsCount = getRandomInt(minColsListsCount, maxColsListsCount);
+	maxColId = 0;
+	maxRowId = 0;
+
+	callCount = 0;
+	pauseTime = 1;
+
+	colsList = new Array();
+	rowsList = new Array();
+	disabledValuesList = new Array();
+	alreadySelectedValuesList = new Array();
+
+	ginUserCtrl = null;
+
+	startDemo(0,{'valId':0,'listId':0});
+}	
+
+/********************************************************************************
+****** DEMO 8
+*********************************************************************************/
+
+function startDemo8(){
+
+	$('demoTitle').innerHTML = "DEMO 8";
+
+	colsTitle = getRandomName();
+	rowsTitle = getRandomName();
+	
+	minColsListsCount = 3;
+	maxColsListsCount = 3;
+
+	minRowsListsCount = 3;
+	maxRowsListsCount = 3;
+
+	minValuesInLists = 3;
+	maxValuesInLists = 3;
+
+	minColsValuesCount = 7;
+	maxColsValuesCount = 7;
+
+	minRowsValuesCount = 7;
+	maxRowsValuesCount = 7;
+
+	disValuesCount = 200;
+	alreadySelectedValuesCount = 0;
+
+	visibleCols = 6;
+	visibleRows = 6;
+	
+	rowsListsCount = getRandomInt(minRowsListsCount, maxRowsListsCount);
+	colsListsCount = getRandomInt(minColsListsCount, maxColsListsCount);
+	maxColId = 0;
+	maxRowId = 0;
+
+	callCount = 0;
+	pauseTime = 1;
+
+	colsList = new Array();
+	rowsList = new Array();
+	disabledValuesList = new Array();
+	alreadySelectedValuesList = new Array();
+
+	ginUserCtrl = null;
+
+	startDemo(0,{'valId':0,'listId':0});
+}	
+
+/********************************************************************************
+****** DEMO 9
+*********************************************************************************/
+
+function startDemo9(){
+
+	$('demoTitle').innerHTML = "DEMO 9";
+
+	colsTitle = getRandomName();
+	rowsTitle = getRandomName();
+	
+	minColsListsCount = 3;
+	maxColsListsCount = 3;
+
+	minRowsListsCount = 3;
+	maxRowsListsCount = 3;
+
+	minValuesInLists = 3;
+	maxValuesInLists = 3;
+
+	minColsValuesCount = 7;
+	maxColsValuesCount = 7;
+
+	minRowsValuesCount = 7;
+	maxRowsValuesCount = 7;
+
+	disValuesCount = 200;
+	alreadySelectedValuesCount = 0;
+
+	visibleCols = 6;
+	visibleRows = 6;
+	
+	rowsListsCount = getRandomInt(minRowsListsCount, maxRowsListsCount);
+	colsListsCount = getRandomInt(minColsListsCount, maxColsListsCount);
+	maxColId = 0;
+	maxRowId = 0;
+
+	callCount = 0;
+	pauseTime = 1;
+
+	colsList = new Array();
+	rowsList = new Array();
+	disabledValuesList = new Array();
+	alreadySelectedValuesList = new Array();
+
+	// define customized user grid ctrl
+	var GinUserCtrl = Class.create({	
+		onCreateCell: function(gridObject, elemTd,cellState){
+			person = null;
+			if(!cellState.enabled){
+				disabledValuesList.each(
+					function(disVal){								
+						if(disVal.alreadyDelegatedTo){
+							if('CV'+disVal.colId + '_RV' + disVal.rowId == elemTd.id){
+								person = disVal.alreadyDelegatedTo;
+								throw $break;
+							}
+						}
+					}
+				);
+				if(person){
+					elemTd.innerHTML = '';
+					if(!elemTd.hasClassName('cell-dis')) elemTd.addClassName('cell-dis');
+					elemTd.removeClassName('gridValueCellDisabled');
+					elemTd.innerHTML = person;						
+				}
+			}
+		},
+		onSelectionChange: function(gridObject,elemTd,cellState){
+			console.log(gridObject.selectedValues);
+			$('serializedSelected').value = gridObject.selectedValues;
+		}
+	});
+	
+	ginUserCtrl = new GinUserCtrl;
+	
+	startDemo(0,{'valId':0,'listId':0});	
+}	
+
+/********************************************************************************
+****** DEMO 10
+*********************************************************************************/
+
+function startDemo10(){
+
+	$('demoTitle').innerHTML = "DEMO 10";
+
+	colsTitle = getRandomName();
+	rowsTitle = getRandomName();
+	
+	minColsListsCount = 3;
+	maxColsListsCount = 3;
+
+	minRowsListsCount = 3;
+	maxRowsListsCount = 3;
+
+	minValuesInLists = 3;
+	maxValuesInLists = 3;
+
+	minColsValuesCount = 7;
+	maxColsValuesCount = 7;
+
+	minRowsValuesCount = 7;
+	maxRowsValuesCount = 7;
+
+	disValuesCount = 150;
+	alreadySelectedValuesCount = 150;
+
+	visibleCols = 6;
+	visibleRows = 6;
+	
+	rowsListsCount = getRandomInt(minRowsListsCount, maxRowsListsCount);
+	colsListsCount = getRandomInt(minColsListsCount, maxColsListsCount);
+	maxColId = 0;
+	maxRowId = 0;
+
+	callCount = 0;
+	pauseTime = 1;
+
+	colsList = new Array();
+	rowsList = new Array();
+	disabledValuesList = new Array();
+	alreadySelectedValuesList = new Array();
+	
+	// define customized user grid ctrl
+	var GinUserCtrl = Class.create({	
+		onCreateCell: function(gridObject, elemTd,cellState){
+			person = null;
+			if(!cellState.enabled){
+				disabledValuesList.each(
+					function(disVal){								
+						if(disVal.alreadyDelegatedTo){
+							if('CV'+disVal.colId + '_RV' + disVal.rowId == elemTd.id){
+								person = disVal.alreadyDelegatedTo;
+								throw $break;
+							}
+						}
+					}
+				);
+				if(person){
+					elemTd.innerHTML = '';
+					if(!elemTd.hasClassName('cell-dis')) elemTd.addClassName('cell-dis');
+					elemTd.removeClassName('gridValueCellDisabled');
+					elemTd.innerHTML = person;						
+				}
+			}
+		},
+		onSelectionChange: function(gridObject,elemTd,cellState){
+			console.log(gridObject.selectedValues);
+			$('serializedSelected').value = gridObject.selectedValues;
+		}
+	});
+
+	ginUserCtrl = new GinUserCtrl;
+	
+	startDemo(0,{'valId':0,'listId':0});
+}	
