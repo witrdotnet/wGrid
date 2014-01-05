@@ -59,10 +59,10 @@ var WGrid = Class.create({
 		}
 		
 		// init grid options
-		if(this.options.grid["navigationVisible"] != undefined) this.navigationVisible = this.options.grid.navigationVisible;
-		if(this.options.grid["navigationAlwaysVisible"] != undefined) this.navigationAlwaysVisible = this.options.grid.navigationAlwaysVisible;
-		if(this.options.grid["navigationMode"] != undefined) this.navigationMode = this.options.grid.navigationMode;
-		if(this.options.grid["preserveGridWidth"] != undefined) this.preserveGridWidth = this.options.grid.preserveGridWidth;
+		if(this.options.parameters["navigationVisible"] != undefined) this.navigationVisible = this.options.parameters.navigationVisible;
+		if(this.options.parameters["navigationAlwaysVisible"] != undefined) this.navigationAlwaysVisible = this.options.parameters.navigationAlwaysVisible;
+		if(this.options.parameters["navigationMode"] != undefined) this.navigationMode = this.options.parameters.navigationMode;
+		if(this.options.parameters["preserveGridWidth"] != undefined) this.preserveGridWidth = this.options.parameters.preserveGridWidth;
 		
 		// init data
 		if((!this.options.data.cols || this.options.data.cols.size() == 0) && (!this.options.data.rows || this.options.data.rows.size() == 0)) {
@@ -83,30 +83,12 @@ var WGrid = Class.create({
 			
 			// init disabled values
 			if(this.options.disabledValues){
-				this.options.disabledValues.each(
-					function(disabledValue){
-						if(disabledValue.colId) id = 'CV'+disabledValue.colId;
-						if(disabledValue.rowId) {
-							if(id && id.length>0) id = id + '_';
-							id = id + 'RV'+disabledValue.rowId;
-						}
-						if(id) me.disabledValues.push(id);
-					}
-				);
+				this.disabledValues = this.options.disabledValues.clone();
 			}
 			
 			// init already selected values			
 			if(this.options.alreadySelectedValues){
-				this.options.alreadySelectedValues.each(
-					function(selectedValue){
-						if(selectedValue.colId) id = 'CV'+selectedValue.colId;
-						if(selectedValue.rowId) {
-							if(id && id.length>0) id = id + '_';
-							id = id + 'RV'+selectedValue.rowId;
-						}
-						if(id) me.selectedValues.push(id);
-					}
-				);
+				this.selectedValues = this.options.alreadySelectedValues.clone();
 			}
 			
 		}
@@ -120,9 +102,9 @@ var WGrid = Class.create({
 		if(!this.data || ((!this.data.cols || this.data.cols.size() == 0) && (!this.data.rows || this.data.rows.size() == 0))) {
 			alert("no data to be displayed !");
 		}else {
-			if(this.options.grid) {
-				if(this.options.grid.visibleColsCount) this.visibleColsCount = this.options.grid.visibleColsCount;
-				if(this.options.grid.visibleRowsCount) this.visibleRowsCount = this.options.grid.visibleRowsCount;
+			if(this.options.parameters) {
+				if(this.options.parameters.visibleColsCount) this.visibleColsCount = this.options.parameters.visibleColsCount;
+				if(this.options.parameters.visibleRowsCount) this.visibleRowsCount = this.options.parameters.visibleRowsCount;
 			}			
 
 			// set colShift to last col if overflows all cols count

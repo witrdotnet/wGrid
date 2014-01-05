@@ -287,13 +287,37 @@ function startDemo(phase,options){
 	
 	if(phase == 6){
 
+		disabledValues = new Array();
+		disabledValuesList.each(
+			function(value){
+				if(value.colId) id = 'CV'+value.colId;
+				if(value.rowId) {
+					if(id && id.length>0) id = id + '_';
+					id = id + 'RV'+value.rowId;
+				}
+				if(id) disabledValues.push(id);
+			}
+		);
+
+		alreadySelectedValues = new Array();
+		alreadySelectedValuesList.each(
+			function(value){
+				if(value.colId) id = 'CV'+value.colId;
+				if(value.rowId) {
+					if(id && id.length>0) id = id + '_';
+					id = id + 'RV'+value.rowId;
+				}
+				if(id) alreadySelectedValues.push(id);
+			}
+		);
+
 		// create Grid with customized gridCtrl
 		grid = new WGrid('cont',{
 								userGridCtrl : ginUserCtrl,
 								data : {cols:colsList, rows:rowsList, colsTitle : colsTitle, rowsTitle : rowsTitle},
-								disabledValues: disabledValuesList,
-								alreadySelectedValues: alreadySelectedValuesList,
-								grid:{visibleColsCount:visibleCols,visibleRowsCount:visibleRows}
+								disabledValues: disabledValues,
+								alreadySelectedValues: alreadySelectedValues,
+								parameters:{visibleColsCount:visibleCols,visibleRowsCount:visibleRows}
 								}
 							);
 		// init selected values input text
