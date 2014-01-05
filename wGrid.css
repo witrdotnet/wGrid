@@ -21,15 +21,19 @@
 	white-space: nowrap;
 	text-overflow:ellipsis;
 	overflow:hidden;
+	margin: 4px 0px 4px 0px;
+	padding-left: 25px;
+	height: 21px;
+	line-height : 15px;
 }
 
 .gridHdrListTd{
 	border: none;
-	background-color : #CBCBCB; 
+	background-color : #CCC; -- #CBCBCB; 
 }
 
 .gridHdrListTdHover{
-	background-color : red; 
+	background-color : #CCC; --red; 
 	cursor : hand;
 }
 
@@ -44,6 +48,18 @@
 	white-space: nowrap;
 	text-overflow:ellipsis;
 	overflow:hidden;
+	margin: 4px 0px 4px 0px;
+	padding-left: 25px;
+	height: 21px;
+	line-height : 15px;
+}
+
+.gridHdrListTdCollapsed{
+	background : url('./images/open.gif') no-repeat;
+}
+
+.gridHdrListTdExpanded{
+	background : url('./images/close.gif') no-repeat;
 }
 
 .gridValueTd {
@@ -66,6 +82,15 @@
 }
 
 
-.gridValueCellSelected{
+.gridValueCellChecked{
 	background-color : gray;
+}
+
+.gridValueCellMiChecked{
+	background-color : silver;
+}
+
+.gridValueCellDisabled{
+	background-color : white;
+	cursor : pointer;
 }

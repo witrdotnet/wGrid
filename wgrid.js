@@ -10,16 +10,43 @@ var WGrid = Class.create({
 		this.defautShiftCellsCount = 1;
 		this.highlightedElem = null;
 		this.selectedValues = new Array();
+		this.disabledValues = new Array();
 		this.data = null;
         this.options = options || {};
 		this.init();		
 		this.dispose();
     },
 	init: function() {
-		if(!this.options.data.cols || !this.options.data.rows) {
+		me = this;
+		if((!this.options.data.cols || this.options.data.cols.size() == 0) && (!this.options.data.rows || this.options.data.rows.size() == 0)) {
 			console.log("missed data to be displayed !");
 		}else {
-			this.data = {cols : this.options.data.cols, rows : this.options.data.rows};
+
+			dataCols = this.options.data.cols;
+			if(!this.options.data.cols || this.options.data.cols.size() == 0){
+				dataCols = new Array({type:'VALUE', key:0, name:'Tous'});
+			}
+
+			dataRows = this.options.data.rows;
+			if(!this.options.data.rows || this.options.data.rows.size() == 0) {
+				dataRows = new Array({type:'VALUE', key:0, name:'Tous'});
+			}
+			
+			this.data = {cols : dataCols , rows : dataRows};
+			
+			if(this.options.disabledValues){
+				this.options.disabledValues.each(
+					function(disabledValue){
+						if(disabledValue.colId) id = 'CV'+disabledValue.colId;
+						if(disabledValue.rowId) {
+							if(id && id.length>0) id = id + '_';
+							id = id + 'RV'+disabledValue.rowId;
+						}
+						if(id) me.disabledValues.push(id);
+					}
+				);
+			}
+			
 		}
 	},
 	
@@ -28,7 +55,7 @@ var WGrid = Class.create({
 	// -------------------------------------------------------------------------------------
 
 	dispose: function() {
-		if(!this.data.cols || !this.data.rows || this.data.cols.size() == 0 || this.data.rows.size() == 0) {
+		if(!this.data || ((!this.data.cols || this.data.cols.size() == 0) && (!this.data.rows || this.data.rows.size() == 0))) {
 			alert("no data to be displayed !");
 		}else {
 			if(this.options.grid) {
@@ -36,7 +63,13 @@ var WGrid = Class.create({
 				if(this.options.grid.visibleRowsCount) this.visibleRowsCount = this.options.grid.visibleRowsCount;
 			}			
 
-			console.log(this);
+			// set colShift to last col if overflows all cols count
+			allColsCount = this.getCellsCount(this.data.cols);			
+			if(this.colShift >= allColsCount) this.colShift = allColsCount-1;
+			// set rowShift to last row if overflows all rows count
+			allRowsCount = this.getCellsCount(this.data.rows);
+			if(this.rowShift >= allRowsCount) this.rowShift = allRowsCount-1;
+			
 			// get data cols range to be displayed
 			displayedData = this.getDisplayedDataRange(this.data);
 	
@@ -47,7 +80,7 @@ var WGrid = Class.create({
 			var elapsedTime = 0;  
 			this.draw(displayedData);
 			elapsedTime = new Date().getTime() - startTime;  
-			console.log('grid drawing takes ' + elapsedTime/1000 + 's no counting display time');  
+			if(elapsedTime>1000) console.log('grid drawing takes ' + elapsedTime/1000 + 's no counting display time');  
 		}
 	},
 	
@@ -94,10 +127,10 @@ var WGrid = Class.create({
 				function(elm){
 					if(elm.type == 'LIST'){
 						if(elm.collapsed || !elm.elements || elm.elements.size() == 0){
-							me.appendGridHdrListTd(row,elm.name,{'id':'CL'+elm.key,'rowspan': 2});
+							me.appendGridHdrListTd(row,elm.name,{'id':'CL'+elm.key,'rowspan': 2},elm.collapsed);
 						}else{
 							listColspan = elm.elements.size();
-							me.appendGridHdrListTd(row,elm.name,{'id':'CL'+elm.key,'colspan':listColspan});
+							me.appendGridHdrListTd(row,elm.name,{'id':'CL'+elm.key,'colspan':listColspan},elm.collapsed);
 						}
 					}
 				}
@@ -142,7 +175,7 @@ var WGrid = Class.create({
 					var row = me.appendTr(gridTable);
 					if(elm.type == 'LIST'){
 						if(elm.collapsed || !elm.elements || elm.elements.size() == 0){
-							me.appendGridHdrListTd(row,elm.name,{'id':'RL'+elm.key,'colspan': 2});
+							me.appendGridHdrListTd(row,elm.name,{'id':'RL'+elm.key,'colspan': 2},elm.collapsed);
 							// draw cellValues of ListRow
 							data.cols.each(
 									function(elm2){
@@ -162,7 +195,7 @@ var WGrid = Class.create({
 								);
 						}else{
 							listRowspan = elm.elements.size();
-							me.appendGridHdrListTd(row,elm.name,{'id':'RL'+elm.key, 'rowspan' : listRowspan});
+							me.appendGridHdrListTd(row,elm.name,{'id':'RL'+elm.key, 'rowspan' : listRowspan},elm.collapsed);
 							createNewRow = false;
 							elm.elements.each(
 								function(rowListValue){
@@ -294,11 +327,16 @@ var WGrid = Class.create({
 		trElem.appendChild(newTd);
 		return newTd;
 	},
-	appendGridHdrListTd: function(trElem, text, options){
-		newTd = this.appendTd(trElem, null, options);
+	appendGridHdrListTd: function(trElem, text, options,collapsed){
+		newTd = this.appendTd(trElem, null, options);		
 		if(text){
 			div = new Element('div');
 			div.appendChild(document.createTextNode(text));
+			if(collapsed){
+				div.addClassName('gridHdrListTdCollapsed');
+			}else {
+				div.addClassName('gridHdrListTdExpanded');
+			}
 			newTd.appendChild(div);		
 		}
 		if(!newTd.hasClassName('gridHdrListTd')) newTd.addClassName('gridHdrListTd');
@@ -317,7 +355,7 @@ var WGrid = Class.create({
 	appendGridValueTd: function(trElem, text, options){
 		newTd = this.appendTd(trElem, text, options);
 		if(!newTd.hasClassName('gridValueTd')) newTd.addClassName('gridValueTd');
-		if(this.isSelectedGridValueCell(newTd)){this.setSelectedGridValueCell(newTd);}
+		this.updateCellDisplayedState(newTd);
 		//if(newTd.id) newTd.appendChild(document.createTextNode(newTd.id))
 		return newTd;
 	},
@@ -325,6 +363,25 @@ var WGrid = Class.create({
 		newTd = this.appendTd(trElem, text, options);
 		if(!newTd.hasClassName('navTd')) newTd.addClassName('navTd');			
 		return newTd;
+	},
+	updateCellDisplayedState: function(elemTd){
+		elemTd.innerHTML = '';
+		cellState = this.getCellState(elemTd.id);
+		
+		if(!cellState.enabled){		
+			if(!elemTd.hasClassName('gridValueCellDisabled')) elemTd.addClassName('gridValueCellDisabled');
+		}
+		if(cellState.checkState == 'checked'){
+			elemTd.removeClassName('gridValueCellMiChecked');
+			if(!elemTd.hasClassName('gridValueCellChecked')) elemTd.addClassName('gridValueCellChecked');
+		}else if(cellState.checkState == 'unchecked'){
+			elemTd.removeClassName('gridValueCellChecked');
+			elemTd.removeClassName('gridValueCellMiChecked');
+		}else if(cellState.checkState == 'michecked'){
+			elemTd.removeClassName('gridValueCellChecked');
+			if(!elemTd.hasClassName('gridValueCellMiChecked')) elemTd.addClassName('gridValueCellMiChecked');
+			elemTd.innerHTML = cellState.checkedCellsCount+'/'+cellState.cellsCount;
+		}		
 	},
 	
 	// -------------------------------------------------------------------------------------
@@ -364,7 +421,7 @@ var WGrid = Class.create({
 	highlight: function(elem, cssClass){
 		if(this.highlightedElem) this.highlightedElem.removeClassName('*Hover');
 		this.highlightedElem=null;
-		if(elem && !this.isSelectedGridValueCell(elem)){			
+		if(elem){			
 			this.highlightedElem = elem;
 			if(!this.highlightedElem.hasClassName(cssClass)) this.highlightedElem.addClassName(cssClass);
 		}
@@ -386,24 +443,137 @@ var WGrid = Class.create({
 	isGridHdrCell: function(tdElem) {
 		return tdElem && tdElem.hasClassName('gridHdrTd');
 	},
-	isSelectedGridValueCell: function(elemTd) {
-		return this.selectedValues.indexOf(elemTd.id) != -1;
+	getFlattenGridIds: function(elemTdId){
+		me = this;
+		ids = elemTdId.split("_");
+		cols = new Array();
+		rows = new Array();
+		ids.each(
+			function(id){
+				if(id.match("CV[0-9]+")){
+					cols.push(id);
+				}else if(id.match("RV[0-9]+")){
+					rows.push(id);
+				}else if(id.match("CL[0-9]+")){					
+					me.data.cols.each(
+						function(elm){
+							if(elm.type == 'LIST' && elm.key == id.substring(2)){
+								if(elm.elements.size() == 0){
+									cols.push(id);
+								}else{
+									elm.elements.each(
+										function(elmCol){
+											cols.push('CV'+elmCol.key);
+										}
+									);
+								}
+							}
+						}
+					);
+				}else if(id.match("RL[0-9]+")){					
+					me.data.rows.each(
+						function(elm){
+							if(elm.type == 'LIST' && elm.key == id.substring(2)){					
+								if(elm.elements.size() == 0){
+									rows.push(id);
+								}else{
+									elm.elements.each(
+										function(elmRow){
+											rows.push('RV'+elmRow.key);
+										}
+									);
+								}
+							}
+						}
+					);
+				}
+			}
+		);
+		
+		idsList = new Array();
+		cols.each(
+			function(colId){
+				rows.each(
+					function(rowId){
+						idsList.push(colId+"_"+rowId);
+					}
+				);
+			}
+		);
+		return idsList;
 	},
-	setSelectedGridValueCell: function(elemTd) {
-		if(this.selectedValues.indexOf(elemTd.id) == -1) this.selectedValues.push(elemTd.id);
-		if(!elemTd.hasClassName('gridValueCellSelected')) elemTd.addClassName('gridValueCellSelected');
+	getCellState: function(elemTdId) {
+		me = this;
+		count = 0;
+		disCount = 0;
+		checkedCount = 0;
+		this.getFlattenGridIds(elemTdId).each(
+			function(id){
+				count++;
+				if(me.selectedValues.indexOf(id) != -1) {
+					checkedCount++;
+				}
+				if(me.disabledValues.indexOf(id) != -1) {					
+					disCount++;
+				}
+			}
+		);		
+		
+		disabled = (disCount>0 && disCount == count);
+		
+		if(checkedCount == 0) check = 'unchecked';
+		else if(checkedCount == count) check = 'checked';
+		else if(checkedCount < count) check = 'michecked';
+		
+		return {
+				enabled : !disabled, 
+				checkState : check, 
+				cellsCount : count, 
+				checkedCellsCount : checkedCount, 
+				disabledCellsCount : disCount
+				};
 	},
-	setUnSelectedGridValueCell: function(elemTd) {
-		this.selectedValues.pop(elemTd.id);
-		elemTd.removeClassName('gridValueCellSelected');
+	setDisabledGridValueCell: function(elemTd) {
+		me = this;
+		this.getFlattenGridIds(elemTd.id).each(
+			function(id){
+				if(me.disabledValues.indexOf(id) == -1) {
+					me.disabledValues.push(id);
+				}
+			}
+		);		
+		if(!elemTd.hasClassName('gridValueCellDisabled')) elemTd.addClassName('gridValueCellDisabled');
+	},
+	setCheckedGridValueCell: function(elemTd) {
+		me = this;
+		this.getFlattenGridIds(elemTd.id).each(
+			function(id){
+				if(me.selectedValues.indexOf(id) == -1 && me.disabledValues.indexOf(id) == -1) {
+					me.selectedValues.push(id);
+				}
+			}
+		);		
+		this.updateCellDisplayedState(elemTd);
+	},
+	setUnCheckedGridValueCell: function(elemTd) {
+		me = this;
+		this.getFlattenGridIds(elemTd.id).each(
+			function(id){				
+				me.selectedValues.splice(me.selectedValues.indexOf(id), 1);
+			}
+		);		
+		this.updateCellDisplayedState(elemTd);
 	},
 	toggleCheckState: function(elemTd){
-		if(this.isSelectedGridValueCell(elemTd)){
-			// not yet selected
-			this.setUnSelectedGridValueCell(elemTd);
-		}else{
-			// already selected
-			this.setSelectedGridValueCell(elemTd);
+	
+		cellState = this.getCellState(elemTd.id);
+		
+		if(cellState.enabled){
+			if(cellState.checkState == 'checked' || cellState.checkState == 'michecked'){
+				this.setUnCheckedGridValueCell(elemTd);
+			}else {
+				this.setCheckedGridValueCell(elemTd);
+			}		
 		}
 	},
 	toggleCollapseState: function(elemTd){
@@ -466,7 +636,7 @@ var WGrid = Class.create({
 	getDisplayedListRange: function(list,shift,visibleCount){
 		displayedList = new Array();
 		minIndex = shift;
-		maxIndex = shift + visibleCount;
+		maxIndex = shift + visibleCount + 1;
 		index = 0;
 		list.each(
 			function(elm){
@@ -540,7 +710,7 @@ var WGrid = Class.create({
 						return false;
 					});
 			if(!filteredList || filteredList.size() == 0){
-				alert("no result match the filter");
+				console.log("no result match the filter \""+filter+"\"");
 				return null;
 			}else{
 				// filter values
@@ -645,13 +815,37 @@ var WGrid = Class.create({
 		return this.colShift > 0;
 	},
 	canShiftRight: function() { 
-		return this.getCellsCount(this.data.cols) - this.colShift >= this.visibleColsCount; 
+		return this.getCellsCount(this.data.cols) - this.colShift > this.visibleColsCount; 
 	},
 	canShiftTop: function() { 
 		return this.rowShift > 0; 
 	},
 	canShiftBottom: function() { 
-		return this.getCellsCount(this.data.rows) - this.rowShift >= this.visibleRowsCount; 
-	}
+		return this.getCellsCount(this.data.rows) - this.rowShift > this.visibleRowsCount; 
+	},
 
+	// -------------------------------------------------------------------------------------
+	// OUTPUTS
+	// -------------------------------------------------------------------------------------
+	
+	getSelectedPairs: function(){
+		result = new Array();
+		this.selectedValues.each(
+			function(selectedId){
+				ids = selectedId.split("_");
+				elm = {};
+				if(ids[0] && ids[0].startsWith('CV')) elm.col = ids[0].substring(2);
+				if(ids[0] && ids[0].startsWith('RV')) elm.row = ids[0].substring(2);
+
+				if(ids[1] && ids[1].startsWith('CV')) elm.col = ids[1].substring(2);
+				if(ids[1] && ids[1].startsWith('RV')) elm.row = ids[1].substring(2);
+
+				result.push(elm);
+				
+			}
+		);
+		this.selectedValues
+		return result;
+	}
+	
 });
