@@ -23,17 +23,17 @@
 					<td><input type="text" id="filterColsText" /></td> 
 					<td><input type="button" id="clearFilterCols" value="X" /></td>
 					<td rowspan="2" style="padding-left:50px;">
-						<input type="button" id="reinit" value="regénérer demo1" onclick="startDemo1();" />
-						<input type="button" id="reinit" value="regénérer demo2" onclick="startDemo2();" />
-						<input type="button" id="reinit" value="regénérer demo3" onclick="startDemo3();" />
-						<input type="button" id="reinit" value="regénérer demo4" onclick="startDemo4();" />
-						<input type="button" id="reinit" value="regénérer demo5" onclick="startDemo5();" />
-						<input type="button" id="reinit" value="regénérer demo6" onclick="startDemo6();" />
-						<input type="button" id="reinit" value="regénérer demo7" onclick="startDemo7();" />
-						<input type="button" id="reinit" value="regénérer demo8" onclick="startDemo8();" />
-						<input type="button" id="reinit" value="regénérer demo9" onclick="startDemo9();" />
-						<input type="button" id="reinit" value="regénérer demo10" onclick="startDemo10();" />
-						<input type="button" id="reinit" value="regénérer demo11" onclick="startDemo11();" />
+						<input type="button" id="reinit" value="demo1" onclick="startDemo1();" />
+						<input type="button" id="reinit" value="demo2" onclick="startDemo2();" />
+						<input type="button" id="reinit" value="demo3" onclick="startDemo3();" />
+						<input type="button" id="reinit" value="demo4" onclick="startDemo4();" />
+						<input type="button" id="reinit" value="demo5" onclick="startDemo5();" />
+						<input type="button" id="reinit" value="demo6" onclick="startDemo6();" />
+						<input type="button" id="reinit" value="demo7" onclick="startDemo7();" />
+						<input type="button" id="reinit" value="demo8" onclick="startDemo8();" />
+						<input type="button" id="reinit" value="demo9" onclick="startDemo9();" />
+						<input type="button" id="reinit" value="demo10" onclick="startDemo10();" />
+						<input type="button" id="reinit" value="demo11" onclick="startDemo11();" />
 					</td>
 					<td id="generatedData" rowspan="2" style="padding-left:50px;white-space:nowrap"></td>					
 				</tr>			
@@ -56,14 +56,14 @@
 						<ul>
 							<li>use direction keys to navigate on grid</li>
 							<li><div class='gridvaluetd'>&nbsp;</div>unchecked cell</li>			
-							<li><div class='gridValueCellMiChecked'>&nbsp;</div>partially checked (list is collapsed while not all fragments in list have been checked)</li>						
+							<li><div class='gridValueCellMiChecked'>&nbsp;</div>partially checked (list is collapsed while not all cells in list have been checked)</li>						
 						</ul>						
 					</td>
 					<td>
 						<ul>
-							<li><div class='gridValueCellChecked'>&nbsp;</div>checked cell (fragment will be delegated in current delegation)</li>
-							<li><div class='gridValueCellDisabled'>&nbsp;</div>disabled cell (fragment not delegated in parent delegation)</li>
-							<li><div class='cell-dis'>&nbsp;</div>disbaled cell (fragment already delegated)</li>						
+							<li><div class='gridValueCellChecked'>&nbsp;</div>checked cell</li>
+							<li><div class='gridValueCellDisabled'>&nbsp;</div>hole cell</li>
+							<li><div class='cell-dis'>&nbsp;</div>disbaled cell</li>						
 						</ul>						
 					</td>
 				</tr>
