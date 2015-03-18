@@ -417,12 +417,12 @@ var WGrid = Class.create({
 			if(me.navigationVisible && (me.isNavigationAlwaysVisible() || me.canShiftLeft() || me.canShiftRight())){
 				// append left shifter link
 				navDisabled = this.canShiftLeft()?'':'-dis';
-				link = new Element('a',{'href':'javascript:null;', 'class':'scrollLeft'+navDisabled, 'style':'float:left'});
+				link = new Element('a',{'href':'javascript:void(0);', 'class':'scrollLeft'+navDisabled, 'style':'float:left'});
 				link.observe('click',this.shiftLeft.bind(this));
 				shiftLeftRightCell.appendChild(link);
 				// append right shifter link
 				navDisabled = this.canShiftRight()?'':'-dis';
-				link = new Element('a',{'href':'javascript:null;', 'class':'scrollRight'+navDisabled, 'style':'float:right'});
+				link = new Element('a',{'href':'javascript:void(0);', 'class':'scrollRight'+navDisabled, 'style':'float:right'});
 				link.observe('click',this.shiftRight.bind(this));
 				shiftLeftRightCell.appendChild(link);
 			}
@@ -430,7 +430,7 @@ var WGrid = Class.create({
 			if(me.navigationVisible && (me.isNavigationAlwaysVisible() || me.canShiftTop() || me.canShiftBottom())){
 				// append top shifter link
 				navDisabled = this.canShiftTop()?'':'-dis';
-				link = new Element('a',{'href':'javascript:null;', 'class':'scrollTop'+navDisabled});
+				link = new Element('a',{'href':'javascript:void(0);', 'class':'scrollTop'+navDisabled});
 				link.observe('click',this.shiftTop.bind(this));
 				shiftTopBottomCell.appendChild(link);
 				// space between shiftTop and shiftBottom		
@@ -438,7 +438,7 @@ var WGrid = Class.create({
 				shiftTopBottomCell.appendChild(spacer);
 				// append bottom shifter link
 				navDisabled = this.canShiftBottom()?'':'-dis';
-				link = new Element('a',{'href':'javascript:null;', 'class':'scrollBottom'+navDisabled});
+				link = new Element('a',{'href':'javascript:void(0);', 'class':'scrollBottom'+navDisabled});
 				link.observe('click',this.shiftBottom.bind(this));
 				shiftTopBottomCell.appendChild(link);
 			}
@@ -450,14 +450,14 @@ var WGrid = Class.create({
 			if(me.navigationVisible && (me.isNavigationAlwaysVisible() || me.canShiftLeft())){
 				// append left shifter link	
 				navDisabled = this.canShiftLeft()?'':'-dis';
-				link = new Element('a',{'href':'javascript:null;', 'class':'scrollLeft'+navDisabled, 'style':'float:left'});
+				link = new Element('a',{'href':'javascript:void(0);', 'class':'scrollLeft'+navDisabled, 'style':'float:left'});
 				link.observe('click',this.shiftLeft.bind(this));
 				shiftLeftBar.appendChild(link);
 			}
 			if(me.navigationVisible && (me.isNavigationAlwaysVisible() || me.canShiftRight())){
 				// append right shifter link
 				navDisabled = this.canShiftRight()?'':'-dis';
-				link = new Element('a',{'href':'javascript:null;', 'class':'scrollRight'+navDisabled, 'style':'float:right'});
+				link = new Element('a',{'href':'javascript:void(0);', 'class':'scrollRight'+navDisabled, 'style':'float:right'});
 				link.observe('click',this.shiftRight.bind(this));
 				shiftRightBar.appendChild(link);
 			}
@@ -465,14 +465,14 @@ var WGrid = Class.create({
 			if(me.navigationVisible && (me.isNavigationAlwaysVisible() || me.canShiftTop())){
 				// append top shifter link
 				navDisabled = this.canShiftTop()?'':'-dis';
-				link = new Element('a',{'href':'javascript:null;', 'class':'scrollTop'+navDisabled});
+				link = new Element('a',{'href':'javascript:void(0);', 'class':'scrollTop'+navDisabled});
 				link.observe('click',this.shiftTop.bind(this));
 				shiftTopBar.appendChild(link);
 			}
 			if(me.navigationVisible && (me.isNavigationAlwaysVisible() || me.canShiftBottom())){
 				// append bottom shifter link
 				navDisabled = this.canShiftBottom()?'':'-dis';
-				link = new Element('a',{'href':'javascript:null;', 'class':'scrollBottom'+navDisabled});
+				link = new Element('a',{'href':'javascript:void(0);', 'class':'scrollBottom'+navDisabled});
 				link.observe('click',this.shiftBottom.bind(this));
 				shiftBottomBar.appendChild(link);
 			}
