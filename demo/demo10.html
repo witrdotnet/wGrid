@@ -1,11 +1,11 @@
 <html>
 	<head>
-		<link rel="stylesheet" type="text/css" href="wGrid.css" /> 
-		<link rel="stylesheet" type="text/css" href="demo.css" /> 
-		<script charset="utf-8" src="./prototype.js" type="text/javascript"></script>	
-		<script charset="utf-8" src="./scriptaculous.js" type="text/javascript"></script>	
-		<script charset="utf-8" src="./wConsole.js" type="text/javascript"></script>	
-		<script charset="utf-8" src="./wGrid.js" type="text/javascript"></script>	
+		<link rel="stylesheet" type="text/css" href="../src/wGrid.css" /> 
+		<link rel="stylesheet" type="text/css" href="./demo.css" /> 
+		<script charset="utf-8" src="../lib/prototype.js" type="text/javascript"></script>	
+		<script charset="utf-8" src="../lib/scriptaculous.js" type="text/javascript"></script>	
+		<script charset="utf-8" src="../src/wConsole.js" type="text/javascript"></script>	
+		<script charset="utf-8" src="../src/wGrid.js" type="text/javascript"></script>	
 		<script charset="utf-8" src="./demo.js" type="text/javascript"></script>		
 	</head>
 	<body>
@@ -23,17 +23,6 @@
 					<td><input type="text" id="filterColsText" /></td> 
 					<td><input type="button" id="clearFilterCols" value="X" /></td>
 					<td rowspan="2" style="padding-left:50px;">
-						<input type="button" id="reinit" value="demo1" onclick="startDemo1();" />
-						<input type="button" id="reinit" value="demo2" onclick="startDemo2();" />
-						<input type="button" id="reinit" value="demo3" onclick="startDemo3();" />
-						<input type="button" id="reinit" value="demo4" onclick="startDemo4();" />
-						<input type="button" id="reinit" value="demo5" onclick="startDemo5();" />
-						<input type="button" id="reinit" value="demo6" onclick="startDemo6();" />
-						<input type="button" id="reinit" value="demo7" onclick="startDemo7();" />
-						<input type="button" id="reinit" value="demo8" onclick="startDemo8();" />
-						<input type="button" id="reinit" value="demo9" onclick="startDemo9();" />
-						<input type="button" id="reinit" value="demo10" onclick="startDemo10();" />
-						<input type="button" id="reinit" value="demo11" onclick="startDemo11();" />
 					</td>
 					<td id="generatedData" rowspan="2" style="padding-left:50px;white-space:nowrap"></td>					
 				</tr>			
@@ -71,7 +60,7 @@
 		</div>
 		
 		<script language="javascript">
-			window.onload=startDemo1();
+			window.onload=startDemo10();
 		</script>
 		
 	</body>
